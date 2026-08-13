@@ -1,8 +1,6 @@
 "use strict";
-
 const chunks = {};
 function chunkKey(x, y) { return ((x / CHUNK) | 0) + ',' + ((y / CHUNK) | 0); }
-
 function rebuildChunks() {
 for (const k in chunks) delete chunks[k];
 for (let i = 0; i < G.ents.length; i++) {
@@ -13,7 +11,6 @@ if (!chunks[k]) chunks[k] = [];
 chunks[k].push(e);
 }
 }
-
 function forEachInRadius(x, y, r, fn) {
 const cx = (x / CHUNK) | 0, cy = (y / CHUNK) | 0, cr = Math.ceil(r / CHUNK);
 for (let dx = -cr; dx <= cr; dx++) for (let dy = -cr; dy <= cr; dy++) {
@@ -24,7 +21,6 @@ if (!e.dead && fn(e)) return;
 }
 }
 }
-
 function forEachInRect(x0, y0, x1, y1, fn) {
 const cx0 = Math.max(0, (x0 / CHUNK) | 0), cy0 = Math.max(0, (y0 / CHUNK) | 0);
 const cx1 = (x1 / CHUNK) | 0, cy1 = (y1 / CHUNK) | 0;
@@ -36,7 +32,6 @@ if (!e.dead) fn(e);
 }
 }
 }
-
 function findNearestInRadius(x, y, r, filter) {
 let best = null, bd = r * r;
 forEachInRadius(x, y, r, e => {
@@ -47,20 +42,17 @@ return false;
 });
 return best;
 }
-
 function getTurfId(tx, ty) {
 if (!G || !G.turfMap) return null;
 const key = tx + ',' + ty;
 return G.turfMap[key] || null;
 }
-
 function setTurf(tx, ty, type) {
 if (!G || !G.turfMap) return;
 const key = tx + ',' + ty;
 if (type) G.turfMap[key] = type; else delete G.turfMap[key];
 clearGround();
 }
-
 function getTurfTypeFromBiome(biome) {
 switch (biome) {
 case 'forests': return 'turf_forest';
@@ -72,12 +64,40 @@ case 'chess': return 'turf_chess';
 default: return 'turf_grass';
 }
 }
-
 const groundTiles = {}, groundTileList = [];
 function clearGround() { for (const k in groundTiles) delete groundTiles[k]; groundTileList.length = 0; }
-
 const BIOME_COLORS = { forests: '#3a5a30', rocky: '#7a7a72', savanna: '#b8a86a', marsh: '#4a6a5a', villages: '#8a9a6a', ponds: '#3a7a8a', default: '#566b41', chess: '#6a6a7a' };
-
+// === БИОМЫ ПРОИЗВОЛЬНОЙ ФОРМЫ: кластер перекрывающихся кругов («блобов») ===
+function makeBiome(x, y, r) {
+const blobs = [{ x: x, y: y, r: r }];
+const n = irand(3, 5);
+for (let i = 0; i < n; i++) {
+const a = rand(TAU);
+const d = rand(r * 0.45, r * 0.95);
+const br = rand(r * 0.35, r * 0.65);
+blobs.push({ x: x + Math.cos(a) * d, y: y + Math.sin(a) * d, r: br });
+}
+return { x: x, y: y, r: r, blobs: blobs };
+}
+function circleBiome(x, y, r) { return { x: x, y: y, r: r, blobs: [{ x: x, y: y, r: r }] }; }
+function pointInBiome(b, x, y) {
+for (let i = 0; i < b.blobs.length; i++) {
+const bl = b.blobs[i], dx = x - bl.x, dy = y - bl.y;
+if (dx * dx + dy * dy < bl.r * bl.r) return true;
+}
+return false;
+}
+function randInBiome(b) {
+let total = 0;
+for (let i = 0; i < b.blobs.length; i++) total += b.blobs[i].r * b.blobs[i].r;
+let t = Math.random() * total, bl = b.blobs[0];
+for (let i = 0; i < b.blobs.length; i++) {
+t -= b.blobs[i].r * b.blobs[i].r;
+if (t <= 0) { bl = b.blobs[i]; break; }
+}
+const a = rand(TAU), d = Math.sqrt(Math.random()) * bl.r;
+return { x: clamp(bl.x + Math.cos(a) * d, 60, W - 60), y: clamp(bl.y + Math.sin(a) * d, 60, H - 60) };
+}
 function getBiomeColor(x, y) {
 if (!G || !G.biomes) return BIOME_COLORS.default;
 let total = 0, r = 0, g = 0, b = 0;
@@ -86,17 +106,20 @@ for (let ki = 0; ki < keys.length; ki++) {
 const key = keys[ki], list = G.biomes[key];
 if (!list) continue;
 for (let i = 0; i < list.length; i++) {
-const bm = list[i], dx = x - bm.x, dy = y - bm.y, dist = Math.sqrt(dx * dx + dy * dy);
-const sigma = bm.r / 2.5, weight = Math.exp(-(dist * dist) / (2 * sigma * sigma));
-if (weight < 0.001) continue;
+const bm = list[i];
 const col = BIOME_COLORS[key] || BIOME_COLORS.default, rgb = hexToRgb(col);
+for (let bi = 0; bi < bm.blobs.length; bi++) {
+const bl = bm.blobs[bi];
+const dx = x - bl.x, dy = y - bl.y, dist = Math.sqrt(dx * dx + dy * dy);
+const sigma = bl.r / 2.5, weight = Math.exp(-(dist * dist) / (2 * sigma * sigma));
+if (weight < 0.001) continue;
 r += rgb[0] * weight; g += rgb[1] * weight; b += rgb[2] * weight; total += weight;
+}
 }
 }
 if (total < 0.001) return BIOME_COLORS.default;
 return 'rgb(' + Math.round(r / total) + ',' + Math.round(g / total) + ',' + Math.round(b / total) + ')';
 }
-
 function getGroundTile(tx, ty) {
 const k = tx + ',' + ty;
 if (groundTiles[k]) return groundTiles[k];
@@ -168,8 +191,16 @@ const rd = G.roads[ri];
 const minX = Math.min(rd.x1, rd.x2) - rd.w, maxX = Math.max(rd.x1, rd.x2) + rd.w;
 const minY = Math.min(rd.y1, rd.y2) - rd.w, maxY = Math.max(rd.y1, rd.y2) + rd.w;
 if (maxX < x0 || minX > x0 + TILE || maxY < y0 || minY > y0 + TILE) continue;
-g.strokeStyle = '#7d7460'; g.lineWidth = rd.w; g.lineCap = 'round';
+g.lineCap = 'round';
+if (rd.kind === 'dirt') {
+g.strokeStyle = '#6f5638'; g.lineWidth = rd.w;
 g.beginPath(); g.moveTo(rd.x1, rd.y1); g.lineTo(rd.x2, rd.y2); g.stroke();
+g.strokeStyle = '#8a6b48'; g.lineWidth = rd.w * .72;
+g.beginPath(); g.moveTo(rd.x1, rd.y1); g.lineTo(rd.x2, rd.y2); g.stroke();
+} else {
+g.strokeStyle = '#7d7460'; g.lineWidth = rd.w;
+g.beginPath(); g.moveTo(rd.x1, rd.y1); g.lineTo(rd.x2, rd.y2); g.stroke();
+}
 }
 if (G.cobbles) for (let ci = 0; ci < G.cobbles.length; ci++) {
 const cb = G.cobbles[ci];
@@ -200,7 +231,6 @@ groundTileList.push(k);
 if (groundTileList.length > 256) { const old = groundTileList.shift(); delete groundTiles[old]; }
 return c;
 }
-
 function newGame() {
 G = {
 t: 0, tod: 18, day: 1, season: 'autumn', phase: 'day',
@@ -232,13 +262,11 @@ $('msglog').innerHTML = '';
 updateEquipUI();
 markExplored(G.player.x, G.player.y, 500);
 }
-
 function placePos(m) { m = m || 150; return { x: rand(m, W - m), y: rand(m, H - m) }; }
 function ent(o) { G.ents.push(o); G.chunkDirty = true; return o; }
 function nearCenter(x, y, r) { const dx = x - W / 2, dy = y - H / 2; return dx * dx + dy * dy < r * r; }
 function rockPts() { const p = []; for (let i = 0; i < 7; i++) { const a = i / 7 * TAU; p.push([Math.cos(a) * rand(13, 21), Math.sin(a) * rand(10, 16)]); } return p; }
 function onRoad(x, y) { if (!G.roads) return false; for (let i = 0; i < G.roads.length; i++) { const r = G.roads[i]; if (distSeg(x, y, r.x1, r.y1, r.x2, r.y2) < r.w) return true; } return false; }
-
 function getBiomeAt(x, y) {
 if (!G || !G.biomes) return null;
 const order = ['villages', 'forests', 'rocky', 'savanna', 'marsh', 'ponds', 'chess'];
@@ -247,14 +275,11 @@ const key = order[oi];
 const list = G.biomes[key];
 if (!list) continue;
 for (let i = 0; i < list.length; i++) {
-const b = list[i];
-const dx = x - b.x, dy = y - b.y;
-if (dx * dx + dy * dy < b.r * b.r) return key;
+if (pointInBiome(list[i], x, y)) return key;
 }
 }
 return null;
 }
-
 function genWorld() {
 let i, a, r, x, y, p, n, f;
 function rndPos(minC) {
@@ -265,43 +290,86 @@ if (dx * dx + dy * dy > minC * minC) return { x: xx, y: yy };
 return { x: rand(500, W - 500), y: rand(500, H - 500) };
 }
 const B = { forests: [], rocky: [], savanna: [], marsh: [], villages: [], ponds: [], chess: [] };
-for (i = 0; i < 10; i++) { p = rndPos(700); B.forests.push({ x: p.x, y: p.y, r: rand(350, 550) }); }
-for (i = 0; i < 5; i++) { p = rndPos(700); B.rocky.push({ x: p.x, y: p.y, r: rand(280, 400) }); }
-for (i = 0; i < 5; i++) { p = rndPos(600); B.savanna.push({ x: p.x, y: p.y, r: rand(320, 460) }); }
-for (i = 0; i < 5; i++) { p = rndPos(800); B.marsh.push({ x: p.x, y: p.y, r: rand(280, 400) }); }
-for (i = 0; i < 5; i++) { p = rndPos(900); B.villages.push({ x: p.x, y: p.y, r: rand(160, 240) }); }
-for (i = 0; i < 8; i++) { p = rndPos(500); B.ponds.push({ x: p.x, y: p.y, r: rand(80, 160) }); }
-for (i = 0; i < 10; i++) {
-const angle = rand(TAU); const dist = rand(1500, 3000);
-const xPos = W / 2 + Math.cos(angle) * dist;
-const yPos = H / 2 + Math.sin(angle) * dist;
-B.chess.push({ x: xPos, y: yPos, r: rand(280, 400) });
+// все биомы крупнее + произвольная форма (кроме шахмат)
+for (i = 0; i < 10; i++) { p = rndPos(700); B.forests.push(makeBiome(p.x, p.y, rand(480, 680))); }
+for (i = 0; i < 5; i++) { p = rndPos(700); B.rocky.push(makeBiome(p.x, p.y, rand(400, 560))); }
+for (i = 0; i < 5; i++) { p = rndPos(600); B.savanna.push(makeBiome(p.x, p.y, rand(450, 620))); }
+for (i = 0; i < 5; i++) { p = rndPos(800); B.marsh.push(makeBiome(p.x, p.y, rand(400, 560))); }
+// не более 2 деревень на всю карту
+for (i = 0; i < 2; i++) { p = rndPos(900); B.villages.push(makeBiome(p.x, p.y, rand(280, 380))); }
+// пруды пачками 3–5 штук, редко (2 кластера на карту), кластеры далеко друг от друга
+const clusterCenters = [];
+for (i = 0; i < 2; i++) {
+let pc = null;
+for (let t2 = 0; t2 < 60; t2++) {
+const cand = rndPos(700);
+let far = true;
+for (let j = 0; j < clusterCenters.length; j++) {
+const cdx = cand.x - clusterCenters[j].x, cdy = cand.y - clusterCenters[j].y;
+if (cdx * cdx + cdy * cdy < 2600 * 2600) { far = false; break; }
 }
-const v0 = B.villages[0];
-const king = { x: clamp(v0.x + rand(-1, 1) * 420, 300, W - 300), y: clamp(v0.y + rand(-1, 1) * 420, 300, H - 300) };
+if (far) { pc = cand; break; }
+}
+if (!pc) pc = rndPos(700);
+clusterCenters.push(pc);
+const nP = irand(3, 5);
+for (let q = 0; q < nP; q++) {
+const pa = rand(TAU);
+const pd = q === 0 ? rand(0, 50) : rand(150, 330);
+B.ponds.push(circleBiome(clamp(pc.x + Math.cos(pa) * pd, 250, W - 250), clamp(pc.y + Math.sin(pa) * pd, 250, H - 250), rand(70, 140)));
+}
+}
+// шахматы мельче, 5 штук, равномерно по кольцу — максимально далеко друг от друга
+const baseAngle = rand(TAU);
+for (i = 0; i < 5; i++) {
+const ca = baseAngle + i / 5 * TAU + rand(-0.12, 0.12);
+const cd = rand(2600, 3800);
+B.chess.push(circleBiome(clamp(W / 2 + Math.cos(ca) * cd, 500, W - 500), clamp(H / 2 + Math.sin(ca) * cd, 500, H - 500), rand(170, 250)));
+}
+const v0 = B.villages[0], v1 = B.villages[1];
+// король между двумя деревнями
+const king = {
+x: clamp(lerp(v0.x, v1.x, rand(.35, .65)) + rand(-120, 120), 300, W - 300),
+y: clamp(lerp(v0.y, v1.y, rand(.35, .65)) + rand(-120, 120), 300, H - 300)
+};
 G.biomes = B;
 G.king = king;
 G.forests = B.forests;
-G.roads = [{ x1: v0.x, y1: v0.y, x2: king.x, y2: king.y, w: 46 }];
-for (i = 1; i < B.villages.length; i++) G.roads.push({ x1: B.villages[i].x, y1: B.villages[i].y, x2: king.x, y2: king.y, w: 46 });
-G.roads.push({ x1: W / 2, y1: H / 2, x2: v0.x, y2: v0.y, w: 40 });
+// дороги: каменная — деревня→король→деревня, грунтовая — замкнутая петля через биомы
+G.roads = [
+{ x1: v0.x, y1: v0.y, x2: king.x, y2: king.y, w: 46, kind: 'stone' },
+{ x1: king.x, y1: king.y, x2: v1.x, y2: v1.y, w: 46, kind: 'stone' }
+];
+const loopPts = [{ x: W / 2, y: H / 2 }];
+const loopBiomes = [pick(B.forests), pick(B.rocky), pick(B.savanna), pick(B.marsh)];
+loopBiomes.sort(function(ba, bb) { return Math.atan2(ba.y - H / 2, ba.x - W / 2) - Math.atan2(bb.y - H / 2, bb.x - W / 2); });
+for (i = 0; i < loopBiomes.length; i++) loopPts.push({ x: loopBiomes[i].x, y: loopBiomes[i].y });
+for (i = 0; i < loopPts.length; i++) {
+const pa1 = loopPts[i], pa2 = loopPts[(i + 1) % loopPts.length];
+G.roads.push({ x1: pa1.x, y1: pa1.y, x2: pa2.x, y2: pa2.y, w: 38, kind: 'dirt' });
+}
 G.cobbles = [];
 for (i = 0; i < G.roads.length; i++) {
 const rd = G.roads[i];
 const len = Math.sqrt((rd.x2 - rd.x1) * (rd.x2 - rd.x1) + (rd.y2 - rd.y1) * (rd.y2 - rd.y1));
-const steps = Math.floor(len / 14);
+const isDirt = rd.kind === 'dirt';
+const steps = Math.floor(len / (isDirt ? 22 : 14));
 const rndc = mulberry(i * 99991 + 7);
 for (let s = 0; s < steps; s++) {
 const tt = s / steps;
+if (isDirt) {
+G.cobbles.push({ x: lerp(rd.x1, rd.x2, tt) + (rndc() * 2 - 1) * rd.w * .5, y: lerp(rd.y1, rd.y2, tt) + (rndc() * 2 - 1) * rd.w * .5, rx: 4 + rndc() * 6, ry: 3 + rndc() * 4, rot: rndc() * TAU, c: rndc() < .5 ? 'rgba(100,76,48,.35)' : 'rgba(150,118,78,.3)' });
+} else {
 G.cobbles.push({ x: lerp(rd.x1, rd.x2, tt) + (rndc() * 2 - 1) * rd.w * .35, y: lerp(rd.y1, rd.y2, tt) + (rndc() * 2 - 1) * rd.w * .35, rx: 3 + rndc() * 3, ry: 2 + rndc() * 2, rot: rndc() * TAU, c: rndc() < .5 ? 'rgba(122,114,96,.8)' : 'rgba(96,90,76,.8)' });
+}
 }
 }
 G.puddles = [];
 for (i = 0; i < B.marsh.length; i++) {
 const mb = B.marsh[i];
 for (let q = 0; q < 12; q++) {
-const ma = rand(TAU), mr = rand(0, mb.r);
-G.puddles.push({ x: mb.x + Math.cos(ma) * mr, y: mb.y + Math.sin(ma) * mr, rx: rand(18, 44), ry: rand(10, 24), rot: rand(TAU) });
+const pp = randInBiome(mb);
+G.puddles.push({ x: pp.x, y: pp.y, rx: rand(18, 44), ry: rand(10, 24), rot: rand(TAU) });
 }
 }
 G.ponds = [];
@@ -320,34 +388,41 @@ ent({ type: 'pond', x: pb.x, y: pb.y, r: pb.r, rot: rand(TAU), dead: false });
 for (let fi2 = 0; fi2 < B.forests.length; fi2++) {
 f = B.forests[fi2];
 n = irand(20, 28);
-for (i = 0; i < n; i++) { a = rand(TAU); r = rand(0, f.r); x = f.x + Math.cos(a) * r; y = f.y + Math.sin(a) * r; if (nearCenter(x, y, 240)) continue; ent({ type: 'tree', x: x, y: y, hp: 66, s: rand(100), growing: false }); }
-n = irand(5, 7);
-for (i = 0; i < n; i++) { a = rand(TAU); r = rand(0, f.r * .8); x = f.x + Math.cos(a) * r; y = f.y + Math.sin(a) * r; if (nearCenter(x, y, 300)) continue; const ne = ent({ type: 'nest', x: x, y: y, hp: 150, s: rand(100), spT: rand(10) }); for (let s0 = 0; s0 < 3; s0++) ent({ type: 'spider', x: x + rand(-50, 50), y: y + rand(-50, 50), hp: 60, hx: x, hy: y, nest: ne, vx: 0, vy: 0, cd: 0, wt: rand(3), tx: 0, ty: 0, aggro: false, s: rand(100) }); }
+for (i = 0; i < n; i++) { p = randInBiome(f); x = p.x; y = p.y; if (nearCenter(x, y, 240)) continue; ent({ type: 'tree', x: x, y: y, hp: 66, s: rand(100), growing: false }); }
+n = irand(1, 2);
+for (i = 0; i < n; i++) { p = randInBiome(f); x = p.x; y = p.y; if (nearCenter(x, y, 300)) continue; const ne = ent({ type: 'nest', x: x, y: y, hp: 150, s: rand(100), spT: rand(10) }); for (let s0 = 0; s0 < 3; s0++) ent({ type: 'spider', x: x + rand(-50, 50), y: y + rand(-50, 50), hp: 60, hx: x, hy: y, nest: ne, vx: 0, vy: 0, cd: 0, wt: rand(3), tx: 0, ty: 0, aggro: false, s: rand(100) }); }
 }
 for (let ri = 0; ri < B.rocky.length; ri++) {
 f = B.rocky[ri];
 n = irand(12, 16);
-for (i = 0; i < n; i++) { a = rand(TAU); r = rand(0, f.r); x = f.x + Math.cos(a) * r; y = f.y + Math.sin(a) * r; if (nearCenter(x, y, 240)) continue; ent({ type: (Math.random() < .3 ? 'goldrock' : 'rock'), x: x, y: y, hp: 88, s: rand(100), pts: rockPts() }); }
-for (i = 0; i < 18; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: Math.random() < .5 ? 'flint' : 'stoneItem', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, s: rand(100) }); }
+for (i = 0; i < n; i++) { p = randInBiome(f); if (nearCenter(p.x, p.y, 240)) continue; ent({ type: (Math.random() < .3 ? 'goldrock' : 'rock'), x: p.x, y: p.y, hp: 88, s: rand(100), pts: rockPts() }); }
+for (i = 0; i < 18; i++) { p = randInBiome(f); ent({ type: Math.random() < .5 ? 'flint' : 'stoneItem', x: p.x, y: p.y, s: rand(100) }); }
 }
 for (let si = 0; si < B.savanna.length; si++) {
 f = B.savanna[si];
-for (i = 0; i < 60; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: 'grass', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, ready: Math.random() < .85, regrow: 0, s: rand(100) }); }
-for (i = 0; i < 25; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: 'sapling', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, ready: Math.random() < .8, regrow: 0, s: rand(100) }); }
-for (i = 0; i < 8; i++) { a = rand(TAU); r = rand(0, f.r); const ho = ent({ type: 'hole', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, s: rand(100) }); ent({ type: 'rabbit', x: ho.x + rand(-40, 40), y: ho.y + rand(-40, 40), hp: 10, hx: ho.x, hy: ho.y, vx: 0, vy: 0, hopT: rand(10), wt: rand(3), tx: 0, ty: 0 }); }
-for (i = 0; i < 10; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: 'carrot', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, s: rand(100) }); }
+for (i = 0; i < 60; i++) { p = randInBiome(f); ent({ type: 'grass', x: p.x, y: p.y, ready: Math.random() < .85, regrow: 0, s: rand(100) }); }
+for (i = 0; i < 25; i++) { p = randInBiome(f); ent({ type: 'sapling', x: p.x, y: p.y, ready: Math.random() < .8, regrow: 0, s: rand(100) }); }
+for (i = 0; i < 8; i++) { p = randInBiome(f); const ho = ent({ type: 'hole', x: p.x, y: p.y, s: rand(100) }); ent({ type: 'rabbit', x: ho.x + rand(-40, 40), y: ho.y + rand(-40, 40), hp: 10, hx: ho.x, hy: ho.y, vx: 0, vy: 0, hopT: rand(10), wt: rand(3), tx: 0, ty: 0 }); }
+for (i = 0; i < 10; i++) { p = randInBiome(f); ent({ type: 'carrot', x: p.x, y: p.y, s: rand(100) }); }
 }
 for (let mi = 0; mi < B.marsh.length; mi++) {
 f = B.marsh[mi];
-n = irand(6, 8);
-for (i = 0; i < n; i++) { a = rand(TAU); r = rand(0, f.r); x = f.x + Math.cos(a) * r; y = f.y + Math.sin(a) * r; const ne2 = ent({ type: 'nest', x: x, y: y, hp: 150, s: rand(100), spT: rand(10) }); for (let s0 = 0; s0 < 3; s0++) ent({ type: 'spider', x: x + rand(-50, 50), y: y + rand(-50, 50), hp: 60, hx: x, hy: y, nest: ne2, vx: 0, vy: 0, cd: 0, wt: rand(3), tx: 0, ty: 0, aggro: false, s: rand(100) }); }
-for (i = 0; i < 12; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: 'berry', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, ready: true, regrow: 0, s: rand(100) }); }
-for (i = 0; i < 14; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: 'sapling', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, ready: true, regrow: 0, s: rand(100) }); }
+n = irand(1, 2);
+for (i = 0; i < n; i++) { p = randInBiome(f); x = p.x; y = p.y; const ne2 = ent({ type: 'nest', x: x, y: y, hp: 150, s: rand(100), spT: rand(10) }); for (let s0 = 0; s0 < 3; s0++) ent({ type: 'spider', x: x + rand(-50, 50), y: y + rand(-50, 50), hp: 60, hx: x, hy: y, nest: ne2, vx: 0, vy: 0, cd: 0, wt: rand(3), tx: 0, ty: 0, aggro: false, s: rand(100) }); }
+for (i = 0; i < 12; i++) { p = randInBiome(f); ent({ type: 'berry', x: p.x, y: p.y, ready: true, regrow: 0, s: rand(100) }); }
+for (i = 0; i < 14; i++) { p = randInBiome(f); ent({ type: 'sapling', x: p.x, y: p.y, ready: true, regrow: 0, s: rand(100) }); }
 }
 for (let vi = 0; vi < B.villages.length; vi++) {
 f = B.villages[vi];
-for (i = 0; i < 7; i++) { a = i / 7 * TAU + rand(-.4, .4); r = rand(70, f.r); x = f.x + Math.cos(a) * r; y = f.y + Math.sin(a) * r; const hs = ent({ type: 'pighouse', x: x, y: y, pigT: 0, s: rand(100) }); ent({ type: 'pig', x: x + rand(-30, 30), y: y + rand(-30, 30), hp: 100, hx: x, hy: y, house: hs, followT: 0, aggroT: 0, cd: 0, wt: 0, tx: 0, ty: 0, vx: 0, vy: 0, s: rand(100) }); }
-for (i = 0; i < 10; i++) { a = rand(TAU); r = rand(0, f.r); ent({ type: 'flower', x: f.x + Math.cos(a) * r, y: f.y + Math.sin(a) * r, s: rand(100), col: pick(['#d8b3d8', '#e8d37a', '#e09a6a', '#cfd8e8']) }); }
+for (i = 0; i < 7; i++) { a = i / 7 * TAU + rand(-.4, .4); r = rand(70, f.r * .85); x = f.x + Math.cos(a) * r; y = f.y + Math.sin(a) * r; const hs = ent({ type: 'pighouse', x: x, y: y, pigT: 0, s: rand(100) }); ent({ type: 'pig', x: x + rand(-30, 30), y: y + rand(-30, 30), hp: 100, hx: x, hy: y, house: hs, followT: 0, aggroT: 0, cd: 0, wt: 0, tx: 0, ty: 0, vx: 0, vy: 0, s: rand(100) }); }
+for (i = 0; i < 10; i++) { p = randInBiome(f); ent({ type: 'flower', x: p.x, y: p.y, s: rand(100), col: pick(['#d8b3d8', '#e8d37a', '#e09a6a', '#cfd8e8']) }); }
+// 12 растущих морковок ИЛИ 12 кустов ягод + 12 кустов травы
+if (Math.random() < .5) {
+for (i = 0; i < 12; i++) { p = randInBiome(f); ent({ type: 'carrot', x: p.x, y: p.y, s: rand(100), ready: true, regrow: 0, regrowable: true }); }
+} else {
+for (i = 0; i < 12; i++) { p = randInBiome(f); ent({ type: 'berry', x: p.x, y: p.y, s: rand(100), ready: true, regrow: 0 }); }
+}
+for (i = 0; i < 12; i++) { p = randInBiome(f); ent({ type: 'grass', x: p.x, y: p.y, s: rand(100), ready: true, regrow: 0 }); }
 }
 ent({ type: 'pigking', x: king.x, y: king.y, s: rand(100) });
 for (i = 0; i < B.forests.length; i++) {
@@ -355,8 +430,15 @@ f = B.forests[i];
 for (let hi = 0; hi < 2; hi++) {
 const ha = rand(TAU), hr = rand(40, f.r * 0.6);
 const hx = f.x + Math.cos(ha) * hr, hy = f.y + Math.sin(ha) * hr;
-if (!nearCenter(hx, hy, 300)) ent({ type: 'wildhive', x: hx, y: hy, hp: 80, honey: rand(1, 3), spawnT: rand(5), s: rand(100) });
+if (!nearCenter(hx, hy, 300)) {
+ent({ type: 'wildhive', x: hx, y: hy, hp: 80, honey: rand(1, 3), spawnT: rand(5), s: rand(100), beeCount: 4 });
+for (let fi = 0; fi < irand(5, 10); fi++) {
+const fa = rand(TAU), fr = rand(40, 130);
+ent({ type: 'flower', x: hx + Math.cos(fa) * fr, y: hy + Math.sin(fa) * fr, s: rand(100), col: pick(['#d8b3d8', '#e8d37a', '#e09a6a', '#cfd8e8']) });
 }
+}
+}
+  
 }
 for (let ci = 0; ci < B.chess.length; ci++) {
 const biom = B.chess[ci];
@@ -370,7 +452,7 @@ ent({ type: 'chess_horse', x: posX, y: posY, vx: 0, vy: 0, hp: 100, maxhp: 100, 
 }
 for (let ci = 0; ci < B.chess.length; ci++) {
 const biom = B.chess[ci];
-const count = irand(10, 16);
+const count = irand(8, 12);
 for (let k = 0; k < count; k++) {
 const angle = rand(TAU); const radius = rand(0, biom.r * 0.7);
 const posX = biom.x + Math.cos(angle) * radius;
@@ -403,7 +485,6 @@ setTurf(tx, ty, turfType);
 }
 }
 }
-
 function isInsidePond(x, y) {
 if (!G || !G.ponds) return null;
 for (let i = 0; i < G.ponds.length; i++) {
@@ -415,7 +496,6 @@ if (val < 1) return p;
 }
 return null;
 }
-
 function pushOutOfPond(x, y) {
 const pond = isInsidePond(x, y);
 if (!pond) return { x, y };

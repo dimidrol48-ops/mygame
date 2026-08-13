@@ -1,15 +1,52 @@
 "use strict";
-
 /* =====================================================
-   INVENTORY.JS — инвентарь, экипировка, хотбар, рюкзак, сундуки
-   Исправленная версия:
-   • FIX: взятие из рюкзака при полном инвентаре больше не удаляет предмет
-   • FIX: класть в рюкзак — переносится весь стак, стаки сливаются
-   • FIX: свиной мешок использует этот же код — исправлен автоматически
-   • FIX: кнопка «положить» в сундук — мердж в стак, даже если нет пустых слотов
-   ===================================================== */
+INVENTORY.JS — инвентарь, экипировка, хотбар, рюкзак, сундуки
++ автостакание предметов (mergeArrayStacks / consolidateStacks)
+===================================================== */
 
-function dirtyInv() { hotbarDirty = true; craftDirty = true; equipDirty = true; }
+// === АВТОСТАКАНИЕ ===
+// Сливает одинаковые стаки внутри одного массива слотов.
+function mergeArrayStacks(arr, size) {
+let changed = false;
+for (let i = 0; i < size; i++) {
+const a = arr[i];
+if (!a || !ITEMS[a.id]) continue;
+const sm = stackMax(a.id);
+if (sm <= 1 || a.n >= sm) continue;
+for (let j = i + 1; j < size; j++) {
+const b = arr[j];
+if (!b || b.id !== a.id) continue;
+const add = Math.min(sm - a.n, b.n);
+if (add <= 0) continue;
+if (isFood(a.id)) {
+a.spoil = blendSpoil(a.n, a.spoil !== undefined ? a.spoil : SPOIL_TIME[a.id], add, b.spoil !== undefined ? b.spoil : SPOIL_TIME[a.id]);
+}
+a.n += add;
+b.n -= add;
+if (b.n <= 0) arr[j] = null;
+changed = true;
+if (a.n >= sm) break;
+}
+}
+return changed;
+}
+
+// Автоматически сливает стаки: инвентарь, рюкзак, открытый сундук/холодильник.
+function consolidateStacks() {
+if (!G) return;
+let changed = false;
+changed = mergeArrayStacks(G.inv, 10) || changed;
+if (G.equip.backpack) {
+const bpSize = (ITEMS[G.equip.backpack.id] && ITEMS[G.equip.backpack.id].backpackSlots) || 6;
+changed = mergeArrayStacks(G.backpackInv, bpSize) || changed;
+}
+if (chestOpen && chestOpen.inventory) {
+changed = mergeArrayStacks(chestOpen.inventory, chestOpen.inventory.length) || changed;
+}
+if (changed) { hotbarDirty = true; craftDirty = true; equipDirty = true; }
+}
+
+function dirtyInv() { hotbarDirty = true; craftDirty = true; equipDirty = true; consolidateStacks(); }
 function getHeld() { return G.inv[G.sel]; }
 function getEquip(slot) { return G.equip[slot] || null; }
 function getActiveItem() { const hands = G.equip.hands; if (hands) return hands; return getHeld(); }
@@ -43,9 +80,7 @@ if (!G.backpackInv[i]) { left -= sm; if (left <= 0) return true; }
 return left <= 0;
 }
 
-// FIX: проверка места ТОЛЬКО в основном инвентаре (10 слотов).
-// Нужна для взятия из рюкзака: обычный canAdd считал бы свободным
-// тот же слот рюкзака, из которого берём предмет, — из-за этого предмет исчезал.
+// Проверка места ТОЛЬКО в основном инвентаре (10 слотов) — для взятия из рюкзака.
 function canAddMain(id, n) {
 n = n || 1;
 let left = n, sm = stackMax(id);
@@ -174,7 +209,6 @@ return true;
 function dropItem(x, y, id, n) {
 ent({ type: 'itemDrop', x: x + rand(-18, 18), y: y + rand(-14, 14), item: id, n: (n || 1), s: rand(100) });
 }
-
 function dropItemNearPlayer(id, n) {
 const p = G.player;
 dropItem(p.x + rand(-30, 30), p.y + rand(-20, 20), id, n);
@@ -309,10 +343,7 @@ e.stopPropagation();
 resumeAudio();
 const s = G.backpackInv[idx];
 if (s) {
-// === FIX: ВЗЯТЬ ИЗ РЮКЗАКА ===
-// Проверяем место ТОЛЬКО в основном инвентаре (canAddMain).
-// Старый canAdd считал свободным сам слот-источник в рюкзаке,
-// addInv доливал стак в него же, а затем слот обнулялся — предмет исчезал.
+// ВЗЯТЬ ИЗ РЮКЗАКА — проверяем место только в основном инвентаре
 if (!canAddMain(s.id, s.n)) { msgFull(); return; }
 G.backpackInv[idx] = null;
 addInv(s.id, s.n, s.spoil);
@@ -320,16 +351,13 @@ dirtyInv();
 msg('Взято из рюкзака: ' + itemName(s.id));
 sfx.pick();
 } else {
-// === FIX: ПОЛОЖИТЬ В РЮКЗАК ===
-// Старый код клал только 1 штуку (n: 1), а весь стак удалял из инвентаря,
-// и не сливал одинаковые предметы в один стак.
+// ПОЛОЖИТЬ В РЮКЗАК — переносим весь стак, сливаем стаки
 const held = getHeld();
 if (held) {
 if (!G.equip.backpack) { msg('Нет рюкзака!'); return; }
 const bpSize = (ITEMS[G.equip.backpack.id] && ITEMS[G.equip.backpack.id].backpackSlots) || 6;
 if (idx >= bpSize) { msg('Слот недоступен'); return; }
 const sm = stackMax(held.id);
-// 1) доливаем в существующие стаки рюкзака
 for (let i = 0; i < bpSize && held.n > 0; i++) {
 const rs = G.backpackInv[i];
 if (rs && rs.id === held.id && rs.n < sm) {
@@ -339,7 +367,6 @@ rs.n += add;
 held.n -= add;
 }
 }
-// 2) остаток кладём в кликнутый пустой слот
 if (held.n > 0) {
 G.backpackInv[idx] = { id: held.id, n: held.n, dur: held.dur, spoil: held.spoil };
 held.n = 0;
@@ -467,7 +494,7 @@ dur.style.display = 'none';
 }
 }
 const active = getActiveItem();
-let txt = '';
+let txt = ' ';
 if (active) {
 const hm = ITEMS[active.id];
 txt = itemName(active.id);
@@ -480,6 +507,7 @@ if (hm && hm.place) txt += isTouch ? ' — тап по земле' : ' — ЛК�
 if (hm && hm.eqSlot) txt += ' — надето';
 if (active.id === 'fishingrod') txt += isTouch ? ' — 🎣 у пруда' : ' — удочка у пруда';
 if (active.id === 'pitchfork') txt += ' — 🟩 собирать/класть дёрн';
+if (active.id === 'bugnet') txt += ' — 🕸️ ловить пчёл';
 }
 $('heldName').textContent = txt;
 hotbarDirty = false;
@@ -536,8 +564,6 @@ const held = getHeld();
 if (!held) { msg('Нет предмета в руках'); return; }
 if (!chest.inventory) chest.inventory = new Array(8).fill(null);
 const sm2 = stackMax(held.id);
-// FIX: ищем пустой слот И слот для слияния — раньше при отсутствии пустого
-// слота выдавалось «полон», даже если можно было долить в существующий стак.
 let freeSlot = -1, mergeSlot = -1;
 for (let i = 0; i < chest.inventory.length; i++) {
 const cs = chest.inventory[i];

@@ -111,7 +111,7 @@ let localDt = dt;
 if (d2 > 600 * 600 && ['spider','rabbit','pig','bee','chess_horse'].indexOf(e.type) >= 0) { if (!e.lodSkip) e.lodSkip = 0; e.lodSkip++; if (e.lodSkip < 4) continue; e.lodSkip = 0; localDt = dt * 4; }
 
 if (e.type === 'tree') { if (e.growing) { e.growTimer += localDt; if (e.growTimer >= e.growTime) { e.growing = false; e.growTimer = 0; e.hp = 66; addText(e.x, e.y - 30, '🌳 Дерево выросло!', '#8fbf54'); sfx.plant(); } } if (e.ignited) { if (updateBurningTree(e, localDt, d2, playing)) return; } }
-else if (e.type === 'grass' || e.type === 'sapling' || e.type === 'berry') { if (!e.ready && G.season !== 'winter') { e.regrow -= localDt; if (e.regrow <= 0) e.ready = true; } }
+else if (e.type === 'grass' || e.type === 'sapling' || e.type === 'berry' || (e.type === 'carrot' && e.regrowable)) { if (!e.ready && G.season !== 'winter') { e.regrow -= localDt; if (e.regrow <= 0) e.ready = true; } }
 else if (e.type === 'campfire') updateCampfire(e, localDt);
 else if (e.type === 'drier') updateDrier(e, localDt);
 else if (e.type === 'nest') updateNest(e, localDt, d2);
@@ -183,7 +183,301 @@ if (craftDirty) updateCraftUI();
 if (equipDirty) updateEquipUI();
 if (chestOpen) updateChestUI(chestOpen);
 }
+// === СОХРАНЕНИЕ В ФАЙЛ / ЗАГРУЗКА ИЗ ФАЙЛА ===
+function collectSaveData() {
+const p = G.player;
+const ids = new Map();
+const live = [];
+for (let i = 0; i < G.ents.length; i++) {
+const e = G.ents[i];
+if (e.dead) continue;
+ids.set(e, live.length);
+live.push(e);
+}
+const ents = [];
+for (let i = 0; i < live.length; i++) {
+const e = live[i], o = {};
+for (const k in e) {
+if (k === 'nest' || k === 'house' || k === 'hive') continue;
+if (typeof e[k] === 'function') continue;
+o[k] = e[k];
+}
+if (e.nest && ids.has(e.nest)) o.nest = ids.get(e.nest);
+if (e.house && ids.has(e.house)) o.house = ids.get(e.house);
+if (e.hive && ids.has(e.hive)) o.hive = ids.get(e.hive);
+ents.push(o);
+}
+const exp = {};
+const ekeys = Object.keys(G.explored);
+for (let i = 0; i < ekeys.length; i++) {
+const pr = ekeys[i].split(',');
+exp[Math.floor(parseInt(pr[0], 10) / 4) + ',' + Math.floor(parseInt(pr[1], 10) / 4)] = 1;
+}
+return {
+v: 1,
+t: G.t, tod: G.tod, day: G.day, season: G.season, phase: G.phase,
+player: { x: p.x, y: p.y, hp: p.hp, hunger: p.hunger, san: p.san, cold: p.cold, face: p.face, darkT: p.darkT },
+inv: G.inv, sel: G.sel, equip: G.equip, backpackInv: G.backpackInv,
+stats: G.stats, flags: G.flags,
+pendingGiant: G.pendingGiant, giantAlive: G.giantAlive,
+biomes: G.biomes, roads: G.roads, cobbles: G.cobbles, puddles: G.puddles, ponds: G.ponds, king: G.king,
+turfMap: G.turfMap, exploredSuper: exp,
+ents: ents
+};
+}
 
+function saveGameToFile() {
+if (!G || state !== 'play') { msg('Сохранять нечего'); return false; }
+if (chestOpen) closeChest();
+cancelFishing();
+let json;
+try { json = JSON.stringify(collectSaveData()); }
+catch (err) { msg('Ошибка сохранения: ' + err.message, 'danger'); return false; }
+const blob = new Blob([json], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'negoloday_den_' + G.day + '_' + G.season + '.json';
+document.body.appendChild(a);
+a.click();
+setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+msg('💾 Файл сохранения скачан (день ' + G.day + ')', 'hint');
+sfx.place();
+return true;
+}
+
+function loadGameFromData(snap) {
+if (!snap || !snap.ents || !snap.player) { msg('Это не файл сохранения игры', 'danger'); return false; }
+if (chestOpen) closeChest();
+cancelFishing();
+newGame();
+G.t = snap.t || 0;
+G.tod = (snap.tod !== undefined) ? snap.tod : 18;
+G.day = snap.day || 1;
+G.season = snap.season || 'autumn';
+G.phase = snap.phase || 'day';
+const p = G.player;
+p.x = snap.player.x; p.y = snap.player.y;
+p.hp = clamp(snap.player.hp, 1, 100);
+p.hunger = clamp(snap.player.hunger, 0, 100);
+p.san = clamp(snap.player.san, 0, 100);
+p.cold = snap.player.cold || 0; p.face = snap.player.face || 0; p.darkT = snap.player.darkT || 0;
+G.inv = snap.inv || new Array(10).fill(null);
+G.sel = (snap.sel !== undefined) ? snap.sel : 0;
+G.equip = snap.equip || { head: null, chest: null, hands: null, backpack: null };
+G.backpackInv = snap.backpackInv || new Array(8).fill(null);
+G.stats = snap.stats || { gather: 0, kills: 0, crafts: 0 };
+G.flags = snap.flags || {};
+G.pendingGiant = snap.pendingGiant || 0;
+G.giantAlive = !!snap.giantAlive;
+if (snap.biomes) G.biomes = snap.biomes;
+if (snap.king) G.king = snap.king;
+if (snap.roads) G.roads = snap.roads;
+if (snap.cobbles) G.cobbles = snap.cobbles;
+if (snap.puddles) G.puddles = snap.puddles;
+if (snap.ponds) G.ponds = snap.ponds;
+if (snap.turfMap) G.turfMap = snap.turfMap;
+G.explored = {};
+if (snap.exploredSuper) {
+const sk = Object.keys(snap.exploredSuper);
+for (let i = 0; i < sk.length; i++) {
+const pr = sk[i].split(',');
+const sx = parseInt(pr[0], 10), sy = parseInt(pr[1], 10);
+for (let dx = 0; dx < 4; dx++) for (let dy = 0; dy < 4; dy++) G.explored[(sx * 4 + dx) + ',' + (sy * 4 + dy)] = true;
+}
+}
+const restored = snap.ents;
+for (let i = 0; i < restored.length; i++) {
+const e = restored[i];
+if (typeof e.nest === 'number') e.nest = restored[e.nest] || null;
+if (typeof e.house === 'number') e.house = restored[e.house] || null;
+if (typeof e.hive === 'number') e.hive = restored[e.hive] || null;
+}
+G.ents = restored;
+clearGround();
+rebuildChunks();
+hotbarDirty = craftDirty = equipDirty = true;
+mapDirty = true;
+markExplored(p.x, p.y, 500);
+updateMapPct();
+return true;
+}
+
+// скрытый input для выбора файла сохранения
+const saveFileInput = document.createElement('input');
+saveFileInput.type = 'file';
+saveFileInput.accept = '.json,application/json';
+saveFileInput.style.display = 'none';
+document.body.appendChild(saveFileInput);
+saveFileInput.addEventListener('change', function() {
+const f = saveFileInput.files && saveFileInput.files[0];
+saveFileInput.value = '';
+if (!f) return;
+const reader = new FileReader();
+reader.onload = function() {
+let snap;
+try { snap = JSON.parse(reader.result); }
+catch (err) { msg('Файл повреждён или это не JSON', 'danger'); return; }
+if (!loadGameFromData(snap)) return;
+state = 'play'; paused = false; mapVisible = false;
+$('startScreen').classList.add('gone');
+setTimeout(function() { $('startScreen').classList.add('hidden'); }, 750);
+$('hud').classList.remove('hidden');
+$('deathScreen').classList.add('hidden');
+if (isTouch) {
+$('touchUI').classList.remove('hidden');
+$('touchBtns').classList.remove('hidden');
+$('touchBtns').style.visibility = 'visible';
+}
+msg('📂 Мир загружен: день ' + G.day + ' (' + (G.season === 'winter' ? 'зима' : 'осень') + ')', 'hint');
+sfx.craft();
+fitHotbar();
+updateEquipUI();
+updateMapPct();
+};
+reader.onerror = function() { msg('Не удалось прочитать файл', 'danger'); };
+reader.readAsText(f);
+});
+
+function loadSavedGame() {
+resumeAudio();
+saveFileInput.click();
+}
+
+// Кнопка «Сохранить» в меню паузы + «Загрузить» в стартовом меню
+(function addSaveLoadButtons() {
+const resume = $('btnResume');
+if (resume && resume.parentElement) {
+const bs = document.createElement('button');
+bs.id = 'btnSave';
+bs.className = resume.className;
+bs.textContent = '💾 Сохранить в файл';
+bs.addEventListener('click', function() { resumeAudio(); saveGameToFile(); });
+resume.parentElement.insertBefore(bs, resume.nextSibling);
+}
+const start = $('btnStart');
+if (start && start.parentElement) {
+const bl = document.createElement('button');
+bl.id = 'btnLoad';
+bl.className = start.className;
+bl.textContent = '📂 Загрузить из файла';
+bl.addEventListener('click', loadSavedGame);
+start.parentElement.insertBefore(bl, start.nextSibling);
+}
+})();
+// === ВЫХОД В ГЛАВНОЕ МЕНЮ ===
+function exitToMenu() {
+if (chestOpen) closeChest();
+cancelFishing();
+cancelJob();
+const craftEl = $('craft');
+if (craftEl && !craftEl.classList.contains('closed')) { craftEl.classList.add('closed'); G.craftWasOpen = false; }
+paused = false;
+mapVisible = false;
+document.getElementById('mapOverlay').classList.remove('open');
+$('pauseScreen').classList.add('hidden');
+$('hud').classList.add('hidden');
+$('touchUI').classList.add('hidden');
+$('touchBtns').classList.add('hidden');
+$('deathScreen').classList.add('hidden');
+$('deathScreen').classList.add('gone');
+const ss = $('startScreen');
+ss.classList.remove('hidden');
+ss.classList.remove('gone');
+state = 'menu';
+newGame();
+}
+
+(function addExitButton() {
+const anchor = $('btnSave') || $('btnResume');
+if (!anchor || !anchor.parentElement) return;
+const b = document.createElement('button');
+b.id = 'btnExit';
+b.className = anchor.className;
+b.textContent = '🚪 Выход';
+b.addEventListener('click', function() { resumeAudio(); exitToMenu(); });
+anchor.parentElement.insertBefore(b, anchor.nextSibling);
+})();
+// === СИСТЕМНЫЕ КНОПКИ ПОД ШКАЛАМИ (звук · весь экран · пауза) ===
+(function moveSysButtons() {
+// Дублируем стили #topbtns button для нового контейнера, иначе кнопки
+// теряют оформление (они были привязаны к родителю #topbtns).
+if (!document.getElementById('sysBtnsStyle')) {
+const sty = document.createElement('style');
+sty.id = 'sysBtnsStyle';
+sty.textContent =
+'#sysBtnsBar button{' +
+'width:44px;height:44px;' +
+'font-family:Neucha;font-size:19px;' +
+'cursor:pointer;color:#241b10;' +
+'background:linear-gradient(160deg,#ddd0a4,#c3ad7f);' +
+'border:2px solid #5c4a2e;' +
+'border-radius:10px 14px 10px 16px;' +
+'box-shadow:0 4px 0 #3c2f1c,0 6px 12px rgba(0,0,0,.5);' +
+'transition:transform .12s;' +
+'touch-action:manipulation;' +
+'margin:0;padding:0;' +
+'display:flex;align-items:center;justify-content:center;' +
+'}' +
+'#sysBtnsBar button:hover{transform:translateY(-3px) rotate(-3deg);}' +
+'#sysBtnsBar button:active{transform:translateY(1px);}' +
+'@media (pointer:coarse){#sysBtnsBar button{width:50px;height:50px;font-size:21px;}}';
+document.head.appendChild(sty);
+}
+
+const meterEls = [$('mHp'), $('mHun'), $('mSan')].filter(Boolean);
+if (!meterEls.length) return;
+
+const bar = document.createElement('div');
+bar.id = 'sysBtnsBar';
+bar.style.cssText = 'position:fixed;display:flex;gap:8px;z-index:70;align-items:center;';
+document.body.appendChild(bar);
+
+// переносим кнопки (перенос DOM-узла сохраняет все их обработчики)
+const ids = ['btnMute', 'btnFull', 'btnPause'];
+for (let i = 0; i < ids.length; i++) {
+const b = $(ids[i]);
+if (!b) continue;
+b.style.position = 'static';
+b.style.left = 'auto'; b.style.right = 'auto';
+b.style.top = 'auto'; b.style.bottom = 'auto';
+bar.appendChild(b);
+}
+
+function metersRect() {
+let top = Infinity, bottom = -Infinity, right = -Infinity, visible = false;
+for (let i = 0; i < meterEls.length; i++) {
+const r = meterEls[i].getBoundingClientRect();
+if (r.width === 0 && r.height === 0) continue;
+visible = true;
+top = Math.min(top, r.top);
+bottom = Math.max(bottom, r.bottom);
+right = Math.max(right, r.right);
+}
+return visible ? { top: top, bottom: bottom, right: right } : null;
+}
+
+function place() {
+const r = metersRect();
+if (!r) {
+// HUD скрыт (стартовое меню) — прижимаем к правому верхнему углу
+bar.style.top = '8px';
+bar.style.right = '8px';
+} else {
+// +28px — зазор под шкалами рассудка (чтобы не наезжали)
+bar.style.top = (r.bottom + 28) + 'px';
+bar.style.right = Math.max(6, Math.round(window.innerWidth - r.right)) + 'px';
+}
+}
+place();
+setTimeout(place, 100);
+window.addEventListener('resize', place);
+window.addEventListener('orientationchange', function() { setTimeout(place, 250); });
+const hud = $('hud');
+if (hud && window.MutationObserver) {
+new MutationObserver(place).observe(hud, { attributes: true, attributeFilter: ['class'] });
+}
+})();
 // === MAIN LOOP & INIT ===
 resize();
 buildHotbar();
