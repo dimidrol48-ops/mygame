@@ -153,7 +153,18 @@ else if (e.type === 'chess_horse') updateChessHorse(e, localDt, d2, playing, px,
 }
 
 let wI = 0;
-for (let ci2 = 0; ci2 < G.ents.length; ci2++) { if (!G.ents[ci2].dead) G.ents[wI++] = G.ents[ci2]; }
+for (let ci2 = 0; ci2 < G.ents.length; ci2++) {
+const e = G.ents[ci2];
+if (e.dead) continue;
+// Удаляем кучки пепла через 10 секунд после выпадения
+if (e.type === 'itemDrop' && e.item === 'ash' && e.spawnTime) {
+if (Date.now() - e.spawnTime > 10000) {
+e.dead = true;
+continue;
+}
+}
+G.ents[wI++] = e;
+}
 G.ents.length = wI;
 
 if (playing) {
