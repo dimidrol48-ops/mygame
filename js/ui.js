@@ -277,6 +277,20 @@ if ($('tCatch')) {
 $('tCatch').style.display = (hasNet && nearBee) ? 'flex' : 'none';
 $('tCatch').classList.toggle('off', !(hasNet && nearBee));
 }
+// кнопка лечения — показываем если есть лечебные предметы
+const heldHeal = held2 && ITEMS[held2.id] && (ITEMS[held2.id].heal || ITEMS[held2.id].healItem);
+let hasHealItem = heldHeal;
+if (!hasHealItem) {
+for (let i = 0; i < 10; i++) {
+const s = G.inv[i];
+if (s && ITEMS[s.id] && (ITEMS[s.id].heal || ITEMS[s.id].healItem)) {
+hasHealItem = true; break;
+}
+}
+}
+$('tHeal').style.display = hasHealItem ? 'flex' : 'none';
+$('tHeal').classList.toggle('off', !hasHealItem);
+
 const takeB = $('tTake');
 const wpn = G.equip.hands;
 const tool = wpn && ITEMS[wpn.id] && ITEMS[wpn.id].tool ? ITEMS[wpn.id].tool : null;

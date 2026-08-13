@@ -262,6 +262,25 @@ else G.inv[slotIdx] = null;
 dirtyInv(); equipDirty = true;
 }
 
+// Обработка кнопки лечения для тач-интерфейса
+function useHealItemTouch() {
+if (state !== 'play' || paused || mapVisible) return;
+const held = getActiveItem();
+if (held && (ITEMS[held.id] && (ITEMS[held.id].heal || ITEMS[held.id].healItem))) {
+useHealItem(held, G.sel);
+return;
+}
+// Ищем лечебные предметы в инвентаре
+for (let i = 0; i < 10; i++) {
+const s = G.inv[i];
+if (s && ITEMS[s.id] && (ITEMS[s.id].heal || ITEMS[s.id].healItem)) {
+useHealItem(s, i);
+return;
+}
+}
+msg('Нет лечебных предметов', 'hint');
+}
+
 function cookAtFire() {
 if (state !== 'play' || paused || mapVisible) return;
 const p = G.player;
