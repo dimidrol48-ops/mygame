@@ -71,6 +71,46 @@ c.closePath(); c.stroke();
 
 }
 
+} else if (id === 'ash') { 
+// Детализированная иконка кучки пепла
+const ashGrad = c.createRadialGradient(-3, -3, 2, 0, 0, 14);
+ashGrad.addColorStop(0, '#d0d0d0');
+ashGrad.addColorStop(0.5, '#909090');
+ashGrad.addColorStop(1, '#505050');
+c.fillStyle = ashGrad;
+c.beginPath();
+c.moveTo(-12, 6);
+c.bezierCurveTo(-15, -3, -8, -12, 3, -11);
+c.bezierCurveTo(12, -10, 15, 3, 10, 9);
+c.bezierCurveTo(3, 15, -8, 12, -12, 6);
+c.fill();
+c.strokeStyle = 'rgba(60, 60, 60, 0.5)';
+c.lineWidth = 1.2;
+c.lineCap = 'round';
+c.beginPath();
+c.moveTo(-6, -3);
+c.quadraticCurveTo(0, 0, 6, -4);
+c.stroke();
+c.beginPath();
+c.moveTo(-3, 5);
+c.quadraticCurveTo(3, 7, 8, 3);
+c.stroke();
+c.fillStyle = '#a0a0a0';
+for (let pi = 0; pi < 5; pi++) {
+const pa = (pi / 5) * Math.PI * 2;
+const pd = 9 + (pi % 2) * 3;
+const px = Math.cos(pa) * pd;
+const py = Math.sin(pa) * pd * 0.7;
+const ps = 1.2 + (pi % 2) * 0.6;
+c.beginPath();
+c.arc(px, py, ps, 0, Math.PI * 2);
+c.fill();
+}
+c.fillStyle = 'rgba(255, 255, 255, 0.3)';
+c.beginPath();
+c.ellipse(-4, -4, 3, 1.5, Math.PI/4, 0, Math.PI*2);
+c.fill();
+
 } else if (id === 'bugnet') {
 
 c.strokeStyle = '#7a5a38'; c.lineWidth = 2.4; c.lineCap = 'round';
