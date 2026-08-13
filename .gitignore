@@ -1,4 +1,1 @@
-(js/game.js, js/mobs.js, js/player.js - these are source files, no build artifacts or dependencies detected)
-
-# No build artifacts, dependencies, or temp files detected in changes
-# Source files only - no ignores needed
+(js/game.js, js/mobs.js, js/rendering.js are all source files, no build artifacts, dependencies, or temp files in the changes)
