@@ -217,11 +217,30 @@ if (!G.flags.kingTrade) { G.flags.kingTrade = 1; msg('Свин-король об
 } break;
 case 'pighouse': msg(pick(['Дом свина. Пахнет желудями.', 'Изнутри слышно хрюканье.'])); break;
 case 'itemDrop':
-if (!ITEMS[t.item]) { t.dead = true; G.chunkDirty = true; break; }
+held = getActiveItem();
+// Проверка на поджог выпадающего предмета факелом
+if (held && ITEMS[held.id] && ITEMS[held.id].tool && ITEMS[held.id].tool.kind === 'torch' && !t.ignited) {
+const dropType = t.item;
+// Проверка на горючесть предмета
+const flammableDrops = ['grass', 'twig', 'berry', 'carrot', 'honey', 'comb', 'stinger', 'boards', 'rope', 'pinecone', 'petals'];
+if (flammableDrops.indexOf(dropType) >= 0) {
+t.ignited = true; t.burnT = 0; t.burnMax = rand(2, 4);
+sfx.ignite(); burst(t.x, t.y - 10, 8, '#ff9a3c', 70, .6);
+msg('Предмет загорелся!', 'danger');
+} else {
+// Негорючий предмет - просто подобрать
 if (!canAdd(t.item, t.n)) { msgFull(); break; }
 addInv(t.item, t.n, t.spoil);
 addText(t.x, t.y - 18, '+ ' + itemName(t.item).toLowerCase());
 t.dead = true; G.chunkDirty = true; G.stats.gather++; sfx.pick();
+}
+} else {
+// Обычный подбор предмета
+if (!canAdd(t.item, t.n)) { msgFull(); break; }
+addInv(t.item, t.n, t.spoil);
+addText(t.x, t.y - 18, '+ ' + itemName(t.item).toLowerCase());
+t.dead = true; G.chunkDirty = true; G.stats.gather++; sfx.pick();
+}
 if (t.item === 'gold' && !G.flags.goldHint) { G.flags.goldHint = 1; msg('Золото! Из него строится научная машина — она откроет новые рецепты', 'hint'); }
 if (t.item === 'silk' && !G.flags.silkHint) { G.flags.silkHint = 1; msg('Паутина нужна для паучьего шлема (крафт у научной машины)', 'hint'); }
 if (t.item === 'pighide' && !G.flags.pigHideHint) { G.flags.pigHideHint = 1; msg('🐗 Свиная шкура — материал для рюкзака и брони', 'hint'); }
