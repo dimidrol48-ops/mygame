@@ -71,9 +71,10 @@ if (weapon && weapon.id === 'torch') { weapon.dur -= dt; if (weapon.dur <= 0) { 
 // Проверка поджога игрока от горящих объектов (только если зашёл в огонь)
 if (!p.burning) {
 let inFire = false;
-forEachInRadius(p.x, p.y, 25, f => {
+forEachInRadius(p.x, p.y, 15, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - p.x, dy = f.y - p.y;
+if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
