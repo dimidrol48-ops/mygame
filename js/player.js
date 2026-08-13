@@ -175,9 +175,8 @@ if (t.type === 'rabbit') { dropItem(t.x, t.y, 'meat', 1); addText(t.x, t.y - 24,
 if (t.type === 'spider') { 
 const dropR = Math.random();
 if (dropR < 0.45) dropItem(t.x, t.y, 'silk', 1);
-else if (dropR < 0.75) dropItem(t.x, t.y, 'meat', 1);
-else dropItem(t.x, t.y, 'mmeat', 1);
-if (Math.random() < 0.25) dropItem(t.x, t.y, 'spidergland', 1);
+else if (dropR < 0.70) dropItem(t.x, t.y, 'mmeat', 1);
+else dropItem(t.x, t.y, 'spidergland', 1);
 addText(t.x, t.y - 24, 'Мрак развеян'); 
 }
 if (t.type === 'pig') { dropItem(t.x, t.y, 'meat', 1); if (Math.random() < .35) dropItem(t.x, t.y, 'meat', 1); if (Math.random() < .6) dropItem(t.x + rand(-16, 16), t.y + rand(-10, 10), 'pighide', 1 + (Math.random() < .4 ? 1 : 0)); addText(t.x, t.y - 24, 'Свин пал'); }
