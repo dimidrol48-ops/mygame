@@ -23,17 +23,40 @@ spear: { name: 'Копьё', stack: 1, tool: { dmg: 34, kind: 'weapon', dur: 40 
 torch: { name: 'Факел', stack: 1, tool: { dmg: 14, kind: 'torch', dur: 80 }, eqSlot: 'hands' },
 pitchfork: { name: 'Вилы', stack: 1, tool: { dmg: 15, kind: 'pitchfork', dur: 60 }, eqSlot: 'hands' },
 ash: { name: 'Кучка пепла', stack: 20, draw: (c, x, y, s) => {
-      c.fillStyle = '#888';
+      // Основная кучка пепла с градиентом
+      const grad = c.createRadialGradient(x - s*0.1, y - s*0.1, s*0.05, x, y, s*0.5);
+      grad.addColorStop(0, '#ddd');
+      grad.addColorStop(0.3, '#aaa');
+      grad.addColorStop(0.7, '#888');
+      grad.addColorStop(1, '#555');
+      
+      c.fillStyle = grad;
       c.beginPath();
-      c.arc(x, y + s*0.2, s*0.4, 0, Math.PI*2);
+      // Неровная форма кучки
+      c.moveTo(x, y - s*0.4);
+      c.bezierCurveTo(x + s*0.3, y - s*0.5, x + s*0.5, y - s*0.2, x + s*0.4, y + s*0.2);
+      c.bezierCurveTo(x + s*0.5, y + s*0.4, x + s*0.2, y + s*0.5, x, y + s*0.45);
+      c.bezierCurveTo(x - s*0.2, y + s*0.5, x - s*0.5, y + s*0.4, x - s*0.4, y + s*0.2);
+      c.bezierCurveTo(x - s*0.5, y - s*0.2, x - s*0.3, y - s*0.5, x, y - s*0.4);
       c.fill();
-      c.fillStyle = '#aaa';
+      
+      // Детали - мелкие частички пепла вокруг
+      c.fillStyle = '#999';
+      for(let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        const dist = s * (0.5 + Math.random() * 0.2);
+        const px = x + Math.cos(angle) * dist;
+        const py = y + Math.sin(angle) * dist;
+        const size = s * (0.08 + Math.random() * 0.07);
+        c.beginPath();
+        c.arc(px, py, size, 0, Math.PI * 2);
+        c.fill();
+      }
+      
+      // Тени для объема
+      c.fillStyle = 'rgba(0,0,0,0.15)';
       c.beginPath();
-      c.arc(x - s*0.2, y - s*0.1, s*0.3, 0, Math.PI*2);
-      c.fill();
-      c.fillStyle = '#666';
-      c.beginPath();
-      c.arc(x + s*0.2, y - s*0.1, s*0.25, 0, Math.PI*2);
+      c.ellipse(x + s*0.1, y + s*0.3, s*0.3, s*0.1, 0, 0, Math.PI * 2);
       c.fill();
     } },
 grasssuit: { name: 'Травяная броня', stack: 1, armor: { abs: .6, dur: 60 }, eqSlot: 'chest' },
