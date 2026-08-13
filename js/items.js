@@ -22,7 +22,20 @@ pick: { name: 'Кирка', stack: 1, tool: { dmg: 22, kind: 'pick', dur: 35 }, 
 spear: { name: 'Копьё', stack: 1, tool: { dmg: 34, kind: 'weapon', dur: 40 }, eqSlot: 'hands' },
 torch: { name: 'Факел', stack: 1, tool: { dmg: 14, kind: 'torch', dur: 80 }, eqSlot: 'hands' },
 pitchfork: { name: 'Вилы', stack: 1, tool: { dmg: 15, kind: 'pitchfork', dur: 60 }, eqSlot: 'hands' },
-ash: { name: 'Кучка пепла', stack: 20 },
+ash: { name: 'Кучка пепла', stack: 20, draw: (c, x, y, s) => {
+      c.fillStyle = '#888';
+      c.beginPath();
+      c.arc(x, y + s*0.2, s*0.4, 0, Math.PI*2);
+      c.fill();
+      c.fillStyle = '#aaa';
+      c.beginPath();
+      c.arc(x - s*0.2, y - s*0.1, s*0.3, 0, Math.PI*2);
+      c.fill();
+      c.fillStyle = '#666';
+      c.beginPath();
+      c.arc(x + s*0.2, y - s*0.1, s*0.25, 0, Math.PI*2);
+      c.fill();
+    } },
 grasssuit: { name: 'Травяная броня', stack: 1, armor: { abs: .6, dur: 60 }, eqSlot: 'chest' },
 logsuit: { name: 'Броня из брёвен', stack: 1, armor: { abs: .8, dur: 120 }, eqSlot: 'chest' },
 spiderhat: { name: 'Паучий шлем', stack: 1, armor: { abs: .7, dur: 150 }, eqSlot: 'head' },
