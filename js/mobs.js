@@ -482,9 +482,9 @@ e.y = clamp(e.y + e.vy * localDt, 40, H - 40);
 // Проверка поджога от горящих объектов (только если зашёл в огонь)
 if (!e.burning) {
 let inFire = false;
-forEachInRadius(e.x, e.y, 25, f => {
+forEachInRadius(e.x, e.y, 15, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - e.x, dy = f.y - e.y; if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
@@ -569,9 +569,9 @@ e.hopT += localDt * 10;
 // Проверка поджога от горящих объектов (только если зашёл в огонь)
 if (!e.burning) {
 let inFire = false;
-forEachInRadius(e.x, e.y, 25, f => {
+forEachInRadius(e.x, e.y, 15, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - e.x, dy = f.y - e.y; if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
@@ -618,9 +618,9 @@ e.cd = Math.max(0, e.cd - localDt);
 // Проверка поджога от горящих объектов (только если зашёл в огонь)
 if (!e.burning) {
 let inFire = false;
-forEachInRadius(e.x, e.y, 25, f => {
+forEachInRadius(e.x, e.y, 15, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - e.x, dy = f.y - e.y; if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
@@ -663,9 +663,9 @@ e.cd = Math.max(0, e.cd - localDt);
 // Проверка поджога от горящих объектов (только если зашёл в огонь)
 if (!e.burning) {
 let inFire = false;
-forEachInRadius(e.x, e.y, 25, f => {
+forEachInRadius(e.x, e.y, 15, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - e.x, dy = f.y - e.y; if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
@@ -745,7 +745,7 @@ if (!e.burning) {
 let inFire = false;
 forEachInRadius(e.x, e.y, 35, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - e.x, dy = f.y - e.y; if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
@@ -803,9 +803,9 @@ e.dmgCooldown = Math.max(0, (e.dmgCooldown || 0) - localDt);
 // Проверка поджога от горящих объектов (только если зашёл в огонь)
 if (!e.burning) {
 let inFire = false;
-forEachInRadius(e.x, e.y, 25, f => {
+forEachInRadius(e.x, e.y, 15, f => {
 if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
-inFire = true; return true;
+const dx = f.x - e.x, dy = f.y - e.y; if (dx*dx + dy*dy < 100) { inFire = true; return true; }
 }
 return false;
 });
