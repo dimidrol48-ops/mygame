@@ -1,1309 +1,1310 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>НЕ ГОЛОДАЙ · Царство Гигантов</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Neucha&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root {
---paper: #d9c79c;
---ink: #241b10;
---blood: #8e2f22;
---ember: #e08a2e;
-}
-* {
-box-sizing: border-box;
--webkit-user-select: none;
-user-select: none;
--webkit-tap-highlight-color: transparent;
-}
-html,
-body {
-margin: 0;
-height: 100%;
-overflow: hidden;
-background: #070906;
-font-family: 'PT Sans', sans-serif;
-overscroll-behavior: none;
--webkit-touch-callout: none;
-}
-#wrap {
-position: fixed;
-inset: 0;
-}
-canvas#game {
-position: absolute;
-inset: 0;
-display: block;
-cursor: crosshair;
-touch-action: none;
-}
-.hidden {
-display: none !important;
-}
-#vignette {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 3;
-background: radial-gradient(ellipse at center, transparent 52%, rgba(4, 7, 3, .62) 100%);
-}
-#grain {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 4;
-opacity: .07;
-mix-blend-mode: overlay;
-}
-#frost {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 5;
-opacity: 0;
-transition: opacity .4s;
-box-shadow: inset 0 0 160px 46px rgba(120, 180, 255, .6);
-background: radial-gradient(ellipse at center, transparent 58%, rgba(150, 195, 255, .22));
-}
-#hurt {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 6;
-opacity: 0;
-background: radial-gradient(ellipse at center, transparent 38%, rgba(160, 20, 8, .6));
-}
-#madness {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 5;
-opacity: 0;
-transition: opacity .8s;
-background: radial-gradient(ellipse at center, transparent 30%, rgba(12, 4, 22, .85));
-}
-#lowWarning {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 7;
-opacity: 0;
-transition: opacity .3s;
-border: 6px solid rgba(200, 50, 30, 0);
-box-shadow: inset 0 0 100px rgba(200, 50, 30, 0);
-}
-#lowWarning.active {
-opacity: 1;
-border-color: rgba(200, 50, 30, .35);
-box-shadow: inset 0 0 100px rgba(200, 50, 30, .15);
-}
-#hungerWarning {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 7;
-opacity: 0;
-transition: opacity .3s;
-border: 6px solid rgba(200, 160, 30, 0);
-box-shadow: inset 0 0 100px rgba(200, 160, 30, 0);
-}
-#hungerWarning.active {
-opacity: 1;
-border-color: rgba(200, 160, 30, .35);
-box-shadow: inset 0 0 100px rgba(200, 160, 30, .15);
-}
-#hud {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 13;
-}
-.chip {
-background: linear-gradient(160deg, #ddd0a4, #c3ad7f);
-color: var(--ink);
-border: 2px solid #5c4a2e;
-border-radius: 14px 20px 12px 22px/20px 12px 22px 14px;
-box-shadow: 0 5px 16px rgba(0, 0, 0, .55), inset 0 0 20px rgba(96, 64, 22, .28);
-}
-#clockbox {
-position: absolute;
-top: 14px;
-left: 14px;
-padding: 8px 14px 8px 8px;
-display: flex;
-gap: 10px;
-align-items: center;
-}
-#dayLabel {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 36px;
-line-height: .9;
-}
-#seasonLabel {
-font-family: Neucha;
-font-size: 16px;
-color: #7a3416;
-}
-#phaseLabel {
-font-size: 12px;
-opacity: .65;
-}
-#meters {
-position: absolute;
-top: 14px;
-right: 14px;
-display: flex;
-gap: 10px;
-}
-.meter {
-padding: 5px;
-}
-#msglog {
-position: absolute;
-left: 16px;
-bottom: 220px;
-width: 380px;
-z-index: 14;
-pointer-events: none;
-}
-.msg {
-font-family: Neucha;
-font-size: 17px;
-color: #f0e6c8;
-text-shadow: 0 2px 5px #000;
-background: rgba(18, 14, 9, .55);
-border-left: 3px solid #a08c5e;
-padding: 4px 12px;
-margin-top: 5px;
-border-radius: 4px 12px 12px 4px;
-animation: msgIn .3s ease, msgOut .6s ease 4s forwards;
-}
-.msg.hint {
-border-color: var(--ember);
-color: #ffd9a0;
-}
-.msg.day {
-border-color: #e8d9b0;
-font-size: 21px;
-font-family: 'Amatic SC';
-letter-spacing: 2px;
-}
-.msg.danger {
-border-color: #c0392b;
-color: #ffb4a6;
-font-size: 19px;
-}
-.msg.warning {
-border-color: #e8a83c;
-color: #ffe08a;
-font-size: 19px;
-animation: msgIn .3s ease, msgOut .6s ease 5s forwards;
-}
-@keyframes msgIn {
-from {
-opacity: 0;
-transform: translateX(-16px)
-}
-}
-@keyframes msgOut {
-to {
-opacity: 0;
-transform: translateY(8px)
-}
-}
-#hotbarWrap {
-position: absolute;
-bottom: 12px;
-left: 50%;
-transform: translateX(-50%);
-transform-origin: bottom center;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 3px;
-max-width: 98vw;
-}
-#heldName {
-font-family: Neucha;
-font-size: 15px;
-color: #ffd9a0;
-text-shadow: 0 2px 4px #000;
-min-height: 18px;
-text-align: center;
-}
-#hotbar {
-display: flex;
-gap: 5px;
-padding: 6px 8px;
-background: rgba(15, 12, 8, .80);
-border: 2px solid #5c4a2e;
-border-radius: 14px;
-pointer-events: auto;
-box-shadow: 0 6px 18px rgba(0, 0, 0, .6);
-flex-wrap: wrap;
-justify-content: center;
-}
-.slot {
-width: 52px;
-height: 52px;
-background: #241f16;
-border: 2px solid #6b5836;
-border-radius: 8px;
-position: relative;
-cursor: pointer;
-transition: transform .13s, border-color .13s, box-shadow .13s;
-touch-action: manipulation;
-flex-shrink: 0;
-}
-.slot:hover {
-transform: translateY(-3px);
-}
-.slot.sel {
-border-color: var(--ember);
-box-shadow: 0 0 14px rgba(224, 138, 46, .55), inset 0 0 9px rgba(224, 138, 46, .25);
-transform: translateY(-4px);
-}
-.slot .cnt {
-position: absolute;
-right: 4px;
-bottom: 5px;
-font: 700 12px 'PT Sans';
-color: #f0e6c8;
-text-shadow: 0 1px 2px #000;
-}
-.slot .key {
-position: absolute;
-left: 4px;
-top: 2px;
-font: 10px 'PT Sans';
-color: #8f8266;
-}
-.slot .dur {
-position: absolute;
-left: 5px;
-right: 5px;
-bottom: 3px;
-height: 3px;
-background: rgba(0, 0, 0, .7);
-border-radius: 2px;
-}
-.slot .dur i {
-display: block;
-height: 100%;
-background: var(--ember);
-border-radius: 2px;
-}
-.slot .eqTag {
-position: absolute;
-left: 2px;
-top: 2px;
-font: 7px 'PT Sans';
-color: #8fbf54;
-background: rgba(0, 0, 0, .6);
-padding: 0 3px;
-border-radius: 2px;
-letter-spacing: .3px;
-}
-#equipBar {
-display: flex;
-gap: 5px;
-padding: 4px 6px;
-background: rgba(15, 12, 8, .70);
-border: 2px solid #4a3a28;
-border-radius: 10px;
-pointer-events: auto;
-margin-bottom: 2px;
-flex-wrap: wrap;
-justify-content: center;
-}
-#equipBar .slot {
-width: 44px;
-height: 44px;
-background: #1a1610;
-border-color: #5a4a32;
-}
-#equipBar .slot.sel {
-border-color: #7ac0e8;
-box-shadow: 0 0 12px rgba(122, 192, 232, .4);
-transform: translateY(-2px);
-}
-#equipBar .slot .key {
-font-size: 8px;
-}
-#equipBar .slot canvas {
-width: 36px;
-height: 36px;
-}
-#backpackSlots {
-display: none;
-gap: 4px;
-padding: 4px 6px;
-background: rgba(15, 12, 8, .60);
-border: 2px solid #4a3a28;
-border-radius: 10px;
-pointer-events: auto;
-margin-top: 2px;
-flex-wrap: wrap;
-justify-content: center;
-max-width: 340px;
-}
-#backpackSlots .slot {
-width: 38px;
-height: 38px;
-background: #1a1610;
-border-color: #5a4a32;
-}
-#backpackSlots .slot canvas {
-width: 30px;
-height: 30px;
-}
-#backpackSlots .slot .cnt {
-font-size: 9px;
-right: 2px;
-bottom: 2px;
-}
-#backpackSlots .slot .key {
-display: none;
-}
-#backpackSlots.open {
-display: flex;
-}
-#craft {
-position: absolute;
-top: 104px;
-right: 14px;
-width: 256px;
-padding: 10px 12px 6px;
-pointer-events: auto;
-max-height: max(150px, calc(100vh - 350px));
-display: flex;
-flex-direction: column;
-transition: transform .35s cubic-bezier(.6, -0.2, .3, 1.3), opacity .3s;
-z-index: 15;
-}
-#craft.closed {
-transform: translateX(115%) rotate(2deg);
-opacity: 0;
-pointer-events: none;
-}
-#craftHead {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 32px;
-letter-spacing: 3px;
-flex-shrink: 0;
-}
-#craftHead span {
-font-family: 'PT Sans';
-font-size: 11px;
-letter-spacing: 0;
-opacity: .6;
-}
-#craftList {
-overflow-y: auto;
--webkit-overflow-scrolling: touch;
-flex: 1 1 auto;
-min-height: 0;
-margin-top: 6px;
-scroll-behavior: smooth;
-touch-action: pan-y;
-}
-#craftList::-webkit-scrollbar {
-width: 6px;
-}
-#craftList::-webkit-scrollbar-track {
-background: rgba(0, 0, 0, .2);
-border-radius: 3px;
-}
-#craftList::-webkit-scrollbar-thumb {
-background: #5c4a2e;
-border-radius: 3px;
-}
-.crow {
-display: flex;
-gap: 10px;
-align-items: center;
-padding: 7px 6px;
-border-top: 1px dashed #9a855f;
-cursor: pointer;
-transition: background .15s, transform .15s;
-touch-action: manipulation;
-}
-.crow:hover {
-background: rgba(120, 90, 40, .2);
-transform: translateX(4px);
-}
-.crow.no {
-opacity: .5;
-filter: saturate(.5);
-}
-.crow.locked {
-opacity: .6;
-filter: grayscale(.7);
-}
-.crow .cname {
-font-family: Neucha;
-font-size: 18px;
-line-height: 1;
-}
-.crow .cdesc {
-font-size: 11px;
-opacity: .7;
-}
-.ccost {
-display: flex;
-gap: 8px;
-margin-top: 3px;
-flex-wrap: wrap;
-}
-.chipC {
-display: flex;
-align-items: center;
-gap: 3px;
-font: 700 12px 'PT Sans';
-color: #4a3a22;
-}
-.chipC.miss {
-color: #a02418;
-}
-#rightCol {
-position: absolute;
-right: 12px;
-bottom: 120px;
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 10px;
-pointer-events: auto;
-z-index: 14;
-}
-#actGrid {
-display: grid;
-grid-template-columns: repeat(2, auto);
-gap: 10px;
-}
-.tbtn {
-width: 70px;
-height: 70px;
-border-radius: 50%;
-border: 2px solid #5c4a2e;
-background: rgba(20, 16, 10, .68);
-color: #ffd9a0;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 2px;
-box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
-touch-action: manipulation;
-cursor: pointer;
-transition: transform .1s, background .1s, opacity .2s;
-}
-.tbtn .tico {
-font-size: 26px;
-line-height: 1;
-}
-.tbtn .tlab {
-font-family: Neucha;
-font-size: 12px;
-line-height: 1;
-}
-.tbtn:active {
-transform: scale(.9);
-background: rgba(224, 138, 46, .4);
-}
-.tbtn.off {
-opacity: .42;
-filter: saturate(.35);
-}
-.tbtn.off:active {
-transform: none;
-background: rgba(20, 16, 10, .68);
-}
-.tbtn.deny {
-animation: deny .25s ease;
-}
-@keyframes deny {
-25% {
-transform: translateX(-5px)
-}
-75% {
-transform: translateX(5px)
-}
-}
-#topbtns {
-display: flex;
-flex-direction: row;
-gap: 8px;
-}
-#topbtns button {
-width: 44px;
-height: 44px;
-font-family: Neucha;
-font-size: 19px;
-cursor: pointer;
-color: var(--ink);
-background: linear-gradient(160deg, #ddd0a4, #c3ad7f);
-border: 2px solid #5c4a2e;
-border-radius: 10px 14px 10px 16px;
-box-shadow: 0 4px 0 #3c2f1c, 0 6px 12px rgba(0, 0, 0, .5);
-transition: transform .12s;
-touch-action: manipulation;
-}
-#topbtns button:hover {
-transform: translateY(-3px) rotate(-3deg);
-}
-#topbtns button:active {
-transform: translateY(1px);
-}
-#touchUI {
-position: absolute;
-inset: 0;
-pointer-events: none;
-z-index: 12;
-}
-#joyZone {
-position: absolute;
-left: 0;
-bottom: 0;
-width: 50%;
-height: 58%;
-pointer-events: auto;
-touch-action: none;
-}
-#joyBase {
-position: absolute;
-width: 116px;
-height: 116px;
-border-radius: 50%;
-border: 2px solid rgba(240, 230, 200, .45);
-background: rgba(20, 16, 10, .35);
-display: none;
-transform: translate(-50%, -50%);
-}
-#joyBase.on {
-display: block;
-}
-#joyKnob {
-position: absolute;
-left: 50%;
-top: 50%;
-width: 54px;
-height: 54px;
-margin: -27px 0 0 -27px;
-border-radius: 50%;
-background: linear-gradient(160deg, #ddd0a4, #c3ad7f);
-border: 2px solid #5c4a2e;
-box-shadow: 0 3px 12px rgba(0, 0, 0, .55);
-}
-.screen {
-position: absolute;
-inset: 0;
-z-index: 20;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 14px;
-transition: opacity .7s;
-text-align: center;
-padding: 12px;
-overflow-y: auto;
-}
-.screen.gone {
-opacity: 0;
-pointer-events: none;
-}
-#startScreen {
-background: radial-gradient(ellipse at 50% 38%, rgba(12, 14, 8, .30), rgba(5, 7, 4, .90) 78%);
-}
-#kicker {
-letter-spacing: 7px;
-font-size: 12px;
-font-weight: 700;
-color: #c9a86a;
-text-transform: uppercase;
-}
-#startScreen h1 {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: clamp(64px, 13vw, 152px);
-line-height: .88;
-margin: 0;
-color: #e8d9b0;
-letter-spacing: 6px;
-transform: rotate(-2deg);
-text-shadow: 0 5px 0 #3a2c18, 0 14px 34px rgba(0, 0, 0, .85);
-animation: tf 5.5s ease-in-out infinite;
-}
-@keyframes tf {
-0%,
-100% {
-transform: rotate(-2deg) translateY(0)
-}
-50% {
-transform: rotate(-2deg) translateY(-7px)
-}
-}
-#subtitle {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: clamp(22px, 4.5vw, 46px);
-letter-spacing: 12px;
-color: #c0392b;
-text-shadow: 0 3px 0 #2a0d07, 0 8px 22px #000;
-margin-top: -4px;
-}
-#tagline {
-font-family: Neucha;
-font-size: 19px;
-color: #cbbd9a;
-margin: 2px 0 10px;
-}
-#controls {
-display: grid;
-grid-template-columns: auto auto;
-gap: 7px 34px;
-margin: 4px 0 10px;
-}
-.crow2 {
-display: flex;
-align-items: center;
-gap: 10px;
-font-size: 14px;
-color: #cfc3a2;
-text-align: left;
-}
-kbd {
-background: #14110b;
-border: 1px solid #6b5836;
-border-bottom-width: 3px;
-padding: 2px 9px;
-border-radius: 6px;
-font: 12px 'PT Sans';
-color: #ffd9a0;
-min-width: 44px;
-text-align: center;
-}
-.bigbtn {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 38px;
-letter-spacing: 4px;
-padding: 8px 52px;
-cursor: pointer;
-color: #f5e3c0;
-background: linear-gradient(#8e2f22, #6d2115);
-border: 2px solid #3c140c;
-border-radius: 12px 20px 14px 22px/20px 12px 22px 14px;
-box-shadow: 0 7px 0 #2a0d07, 0 14px 30px rgba(0, 0, 0, .65);
-transition: transform .18s, box-shadow .18s;
-touch-action: manipulation;
-}
-.bigbtn:hover {
-transform: translateY(-4px) scale(1.04);
-box-shadow: 0 10px 0 #2a0d07, 0 18px 44px rgba(224, 138, 46, .35);
-}
-.bigbtn:active {
-transform: translateY(2px);
-box-shadow: 0 3px 0 #2a0d07;
-}
-#fineprint {
-font-size: 11px;
-color: #8d8468;
-opacity: .7;
-margin-top: 8px;
-}
-#deathScreen {
-background: radial-gradient(ellipse at center, rgba(40, 8, 5, .72), rgba(8, 3, 2, .94) 80%);
-z-index: 22;
-}
-#deathScreen h2 {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: clamp(64px, 11vw, 130px);
-margin: 0;
-color: #d33b2a;
-letter-spacing: 8px;
-transform: rotate(-2deg);
-text-shadow: 0 5px 0 #200503, 0 16px 40px #000;
-}
-#deathCause {
-font-family: Neucha;
-font-size: 21px;
-color: #e8c9a0;
-}
-#deathStats {
-display: flex;
-gap: 16px;
-margin: 8px 0 14px;
-flex-wrap: wrap;
-justify-content: center;
-}
-.stat {
-padding: 10px 20px;
-}
-.stat b {
-display: block;
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 46px;
-line-height: .9;
-}
-.stat span {
-font-size: 12px;
-opacity: .75;
-}
-#pauseScreen {
-background: rgba(6, 8, 4, .82);
-z-index: 21;
-}
-#pauseScreen h2 {
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 64px;
-color: #e8d9b0;
-margin: 0;
-letter-spacing: 6px;
-}
-@media (pointer:coarse) {
-.slot {
-width: 58px;
-height: 58px;
-}
-#topbtns button {
-width: 50px;
-height: 50px;
-font-size: 21px;
-}
-#rightCol {
-bottom: 126px;
-}
-#heldName {
-font-size: 13px;
-}
-#equipBar .slot {
-width: 48px;
-height: 48px;
-}
-#equipBar .slot canvas {
-width: 38px;
-height: 38px;
-}
-#backpackSlots .slot {
-width: 42px;
-height: 42px;
-}
-#backpackSlots .slot canvas {
-width: 34px;
-height: 34px;
-}
-#craft {
-width: 220px;
-right: 6px;
-top: 80px;
-max-height: calc(100vh - 300px);
-}
-}
-@media (max-height:460px) {
-.tbtn {
-width: 60px;
-height: 60px;
-}
-.tbtn .tico {
-font-size: 22px;
-}
-#rightCol {
-bottom: 100px;
-}
-#equipBar .slot {
-width: 38px;
-height: 38px;
-}
-#equipBar .slot canvas {
-width: 30px;
-height: 30px;
-}
-#backpackSlots .slot {
-width: 34px;
-height: 34px;
-}
-#backpackSlots .slot canvas {
-width: 26px;
-height: 26px;
-}
-#craft {
-width: 200px;
-right: 4px;
-top: 70px;
-max-height: calc(100vh - 260px);
-}
-}
-@media (max-width:760px) {
-#controls {
-grid-template-columns: auto;
-}
-#craft {
-width: 200px;
-right: 4px;
-top: 70px;
-}
-#msglog {
-width: 220px;
-left: 8px;
-bottom: 200px;
-}
-#dayLabel {
-font-size: 28px;
-}
-#equipBar .slot {
-width: 40px;
-height: 40px;
-}
-#equipBar .slot canvas {
-width: 32px;
-height: 32px;
-}
-#hotbar {
-gap: 3px;
-padding: 4px 6px;
-}
-.slot {
-width: 44px;
-height: 44px;
-}
-.slot canvas {
-width: 36px;
-height: 36px;
-}
-}
-#bpLabel {
-font-family: Neucha;
-font-size: 11px;
-color: #a09070;
-text-align: center;
-margin-top: 2px;
-letter-spacing: 1px;
-}
-#mapOverlay {
-position: absolute;
-inset: 0;
-z-index: 30;
-background: rgba(14, 12, 8, .88);
-display: none;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-pointer-events: auto;
-touch-action: none;
-padding: 20px;
-transition: opacity .35s ease;
-opacity: 0;
-}
-#mapOverlay.open {
-display: flex;
-opacity: 1;
-}
-#mapCanvasWrap {
-position: relative;
-width: 100%;
-max-width: min(96vh, 96vw);
-aspect-ratio: 1;
-background: #1a1610;
-border: 4px solid #5c4a2e;
-border-radius: 16px;
-box-shadow: 0 0 60px rgba(0, 0, 0, .85), inset 0 0 40px rgba(0, 0, 0, .5);
-overflow: hidden;
-touch-action: none;
-}
-#mapCanvasWrap canvas {
-display: block;
-width: 100%;
-height: 100%;
-image-rendering: pixelated;
-touch-action: none;
-}
-#mapCloseBtn {
-position: absolute;
-top: 8px;
-right: 12px;
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 28px;
-color: #e8d9b0;
-background: rgba(20, 16, 10, .8);
-border: 2px solid #5c4a2e;
-border-radius: 50%;
-width: 44px;
-height: 44px;
-cursor: pointer;
-display: flex;
-align-items: center;
-justify-content: center;
-z-index: 31;
-touch-action: manipulation;
-transition: transform .15s, background .15s;
-}
-#mapCloseBtn:hover {
-transform: scale(1.1);
-background: rgba(40, 30, 18, .9);
-}
-#mapCloseBtn:active {
-transform: scale(.92);
-}
-#mapLegend {
-position: absolute;
-bottom: 10px;
-left: 12px;
-font-family: Neucha;
-font-size: 12px;
-color: #cbbd9a;
-background: rgba(10, 8, 5, .7);
-padding: 4px 10px;
-border-radius: 6px;
-border: 1px solid #5c4a2e;
-pointer-events: none;
-z-index: 31;
-display: flex;
-gap: 12px;
-flex-wrap: wrap;
-}
-#mapLegend span {
-display: flex;
-align-items: center;
-gap: 4px;
-}
-#mapLegend .dot {
-display: inline-block;
-width: 8px;
-height: 8px;
-border-radius: 50%;
-border: 1px solid rgba(0, 0, 0, .3);
-}
-#mapTitle {
-position: absolute;
-top: 10px;
-left: 50%;
-transform: translateX(-50%);
-font-family: 'Amatic SC';
-font-weight: 700;
-font-size: 26px;
-color: #e8d9b0;
-text-shadow: 0 2px 8px #000;
-letter-spacing: 4px;
-z-index: 31;
-pointer-events: none;
-background: rgba(10, 8, 5, .5);
-padding: 0 16px;
-border-radius: 8px;
-border: 1px solid rgba(92, 74, 46, .3);
-}
-#mapPct {
-position: absolute;
-bottom: 12px;
-right: 14px;
-font-family: 'PT Sans';
-font-size: 13px;
-color: #cbbd9a;
-background: rgba(10, 8, 5, .7);
-padding: 2px 10px;
-border-radius: 4px;
-border: 1px solid #5c4a2e;
-z-index: 31;
-pointer-events: none;
-}
-@media (pointer:coarse) {
-#mapCanvasWrap {
-max-width: min(92vh, 94vw);
-}
-#mapTitle {
-font-size: 20px;
-top: 6px;
-padding: 0 12px;
-}
-#mapCloseBtn {
-width: 40px;
-height: 40px;
-font-size: 24px;
-top: 4px;
-right: 8px;
-}
-#mapLegend {
-font-size: 10px;
-bottom: 6px;
-left: 6px;
-padding: 3px 8px;
-gap: 8px;
-}
-#mapPct {
-font-size: 11px;
-bottom: 8px;
-right: 8px;
-padding: 2px 8px;
-}
-}
-@media (max-width:500px) {
-#mapTitle {
-font-size: 16px;
-top: 4px;
-padding: 0 10px;
-}
-#mapCloseBtn {
-width: 34px;
-height: 34px;
-font-size: 20px;
-top: 2px;
-right: 6px;
-}
-#mapLegend {
-font-size: 9px;
-bottom: 4px;
-left: 4px;
-padding: 2px 6px;
-gap: 5px;
-}
-#mapPct {
-font-size: 9px;
-bottom: 4px;
-right: 4px;
-padding: 1px 6px;
-}
-}
-#fishingBar {
-position: absolute;
-bottom: 200px;
-left: 50%;
-transform: translateX(-50%);
-width: 200px;
-height: 16px;
-background: rgba(10, 8, 5, .8);
-border: 2px solid #5c4a2e;
-border-radius: 8px;
-z-index: 16;
-display: none;
-overflow: hidden;
-}
-#fishingBar .fill {
-height: 100%;
-background: linear-gradient(90deg, #3a8ab5, #6ac8e8);
-border-radius: 6px;
-width: 0%;
-transition: width .05s linear;
-}
-#fishingBar .label {
-position: absolute;
-inset: 0;
-display: flex;
-align-items: center;
-justify-content: center;
-font-family: Neucha;
-font-size: 11px;
-color: #f0e6c8;
-text-shadow: 0 1px 3px #000;
-}
-#chestUI {
-position: absolute;
-bottom: 140px;
-left: 50%;
-transform: translateX(-50%);
-background: rgba(15, 12, 8, .92);
-border: 2px solid #5c4a2e;
-border-radius: 14px;
-padding: 10px;
-z-index: 17;
-display: none;
-flex-direction: column;
-align-items: center;
-gap: 6px;
-min-width: 280px;
-max-width: 90vw;
-pointer-events: auto;
-}
-#chestUI.open {
-display: flex;
-}
-#chestUI .chestHeader {
-font-family: 'Amatic SC';
-font-size: 26px;
-color: #e8d9b0;
-letter-spacing: 2px;
-}
-#chestUI .chestSlots {
-display: flex;
-gap: 5px;
-flex-wrap: wrap;
-justify-content: center;
-padding: 4px;
-}
-#chestUI .chestSlots .slot {
-width: 44px;
-height: 44px;
-background: #1a1610;
-border: 2px solid #5a4a32;
-border-radius: 6px;
-position: relative;
-cursor: pointer;
-}
-#chestUI .chestSlots .slot canvas {
-width: 36px;
-height: 36px;
-}
-#chestUI .chestSlots .slot .cnt {
-position: absolute;
-right: 2px;
-bottom: 2px;
-font: 700 10px 'PT Sans';
-color: #f0e6c8;
-text-shadow: 0 1px 2px #000;
-}
-#chestUI .chestClose {
-font-family: Neucha;
-font-size: 18px;
-color: #ffd9a0;
-background: rgba(20, 16, 10, .8);
-border: 2px solid #5c4a2e;
-border-radius: 8px;
-padding: 2px 14px;
-cursor: pointer;
-touch-action: manipulation;
-}
-#chestUI .chestClose:active {
-transform: scale(.95);
-}
-</style>
-</head>
-<body>
-<div id="wrap">
-<canvas id="game"></canvas>
-<div id="vignette"></div>
-<div id="grain"></div>
-<div id="frost"></div>
-<div id="hurt"></div>
-<div id="madness"></div>
-<div id="lowWarning"></div>
-<div id="hungerWarning"></div>
-<div id="chestUI">
-<div class="chestHeader">📦 СУНДУК</div>
-<div class="chestSlots" id="chestSlots"></div>
-<button class="chestClose" id="chestClose">Закрыть</button>
-</div>
-<div id="mapOverlay">
-<div id="mapCanvasWrap">
-<canvas id="mapCanvas"></canvas>
-<div id="mapTitle">🗺️ КАРТА</div>
-<button id="mapCloseBtn">✕</button>
-<div id="mapLegend">
-<span><span class="dot" style="background:#3a5a30;"></span> лес</span>
-<span><span class="dot" style="background:#7a7a72;"></span> скалы</span>
-<span><span class="dot" style="background:#b8a86a;"></span> саванна</span>
-<span><span class="dot" style="background:#4a6a5a;"></span> болото</span>
-<span><span class="dot" style="background:#8a9a6a;"></span> деревня</span>
-<span><span class="dot" style="background:#6a6a7a;border-color:#4a4a5a;"></span> шахматы</span>
-<span><span class="dot" style="background:#e8c23c;border-color:#a8862a;"></span> Свин-король</span>
-<span><span class="dot" style="background:#3a8ab5;"></span> пруд</span>
-<span><span class="dot" style="background:#ff6a1e;"></span> вы</span>
-<span><span class="dot" style="background:#a0a0b0;border-color:#666;"></span> шахматный конь</span>
-</div>
-<div id="mapPct">0%</div>
-</div>
-</div>
-<div id="touchUI" class="hidden">
-<div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div></div>
-</div>
-<div id="hud" class="hidden">
-<div id="clockbox" class="chip">
-<canvas id="clockCv" width="84" height="84"></canvas>
-<div><div id="dayLabel">День 1</div><div id="seasonLabel">Осень</div><div id="phaseLabel">Утро</div></div>
-</div>
-<div id="meters">
-<div class="meter chip"><canvas id="mHp" width="62" height="62"></canvas></div>
-<div class="meter chip"><canvas id="mHun" width="62" height="62"></canvas></div>
-<div class="meter chip"><canvas id="mSan" width="62" height="62"></canvas></div>
-</div>
-<div id="msglog"></div>
-<div id="fishingBar"><div class="fill" id="fishFill"></div><div class="label">🎣 Ловля...</div></div>
-<div id="hotbarWrap">
-<div id="heldName"></div>
-<div id="equipBar"></div>
-<div id="hotbar"></div>
-<div id="backpackSlots"></div>
-<div id="bpLabel">🎒 рюкзак</div>
-</div>
-<div id="craft" class="chip closed">
-<div id="craftHead">КРАФТ <span id="craftHint">— клавиша Tab</span></div>
-<div id="craftList"></div>
-</div>
-<div id="rightCol">
-<div id="touchBtns" class="hidden">
-<div id="actGrid">
-<button id="tAttack" class="tbtn off"><span class="tico">⚔</span><span class="tlab">атака</span></button>
-<button id="tTake" class="tbtn off"><span class="tico">🤲</span><span class="tlab">взять</span></button>
-<button id="tCook" class="tbtn" style="display:none"><span class="tico">🔥</span><span class="tlab">жарить</span></button>
-<button id="tEat" class="tbtn"><span class="tico">🍖</span><span class="tlab">есть</span></button>
-<button id="tPlant" class="tbtn" style="display:none"><span class="tico">🌱</span><span class="tlab">посадить</span></button>
-<button id="tFish" class="tbtn" style="display:none"><span class="tico">🎣</span><span class="tlab">рыбачить</span></button>
-<button id="tChestStore" class="tbtn" style="display:none"><span class="tico">📦</span><span class="tlab">положить</span></button>
-</div>
-</div>
-<div id="topbtns">
-<button id="btnCraft" title="Крафт">⚒</button>
-<button id="btnMap" title="Карта">🗺️</button>
-<button id="btnMute" title="Звук">♪</button>
-<button id="btnPause" title="Пауза">Ⅱ</button>
-</div>
-</div>
-</div>
-<div id="startScreen" class="screen">
-<div id="kicker">HTML5 · Canvas · фанатский клон</div>
-<h1>НЕ&nbsp;ГОЛОДАЙ</h1>
-<div id="subtitle">ЦАРСТВО ГИГАНТОВ</div>
-<p id="tagline">Собирай. Крафти. Торгуй с королём. Переживи ночь — и гиганта. Остерегайся механических шахматных коней в шахматном биоме!</p>
-<div id="controls">
-<div class="crow2"><kbd>WASD</kbd>движение · <kbd>Shift</kbd>бег</div>
-<div class="crow2"><kbd>ЛКМ</kbd>действие / атака</div>
-<div class="crow2"><kbd>ПКМ</kbd> / <kbd>F</kbd>съесть выбранное</div>
-<div class="crow2"><kbd>E</kbd>жарить мясо у огня</div>
-<div class="crow2"><kbd>1–0</kbd> / колесо — слоты</div>
-<div class="crow2"><kbd>Tab</kbd>крафт · <kbd>Esc</kbd>пауза</div>
-<div class="crow2"><kbd>Q</kbd>выбросить предмет из слота</div>
-<div class="crow2"><kbd>M</kbd>карта</div>
-</div>
-<button class="bigbtn" id="btnStart">Начать выживание</button>
-<div id="fineprint">Неофициальная фан-работа по мотивам Don't Starve: Reign of Giants. Все механики воссозданы с нуля.</div>
-</div>
-<div id="deathScreen" class="screen hidden">
-<h2>ТЫ ПОГИБ</h2>
-<div id="deathCause"></div>
-<div id="deathStats"></div>
-<button class="bigbtn" id="btnRetry">Попробовать снова</button>
-</div>
-<div id="pauseScreen" class="screen hidden">
-<h2>ПАУЗА</h2>
-<div id="pauseControls" style="display:grid;grid-template-columns:auto;gap:7px;">
-<div class="crow2"><kbd>WASD</kbd>движение</div>
-<div class="crow2"><kbd>ЛКМ</kbd>действие · <kbd>E</kbd>жарить · <kbd>F</kbd>есть</div>
-<div class="crow2"><kbd>Tab</kbd>крафт · <kbd>M</kbd>звук · <kbd>Q</kbd>выбросить</div>
-<div class="crow2"><kbd>M</kbd>карта</div>
-</div>
-<button class="bigbtn" id="btnResume">Продолжить</button>
-</div>
-</div>
-
-<script src="js/utils.js"></script>
-<script src="js/items.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/world.js"></script>
-<script src="js/inventory.js"></script>
-<script src="js/crafting.js"></script>
-<script src="js/player.js"></script>
-<script src="js/mobs.js"></script>
-<script src="js/rendering.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/input.js"></script>
-<script src="js/game.js"></script>
-</body>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>НЕ ГОЛОДАЙ · Царство Гигантов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Neucha&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+--paper: #d9c79c;
+--ink: #241b10;
+--blood: #8e2f22;
+--ember: #e08a2e;
+}
+* {
+box-sizing: border-box;
+-webkit-user-select: none;
+user-select: none;
+-webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+margin: 0;
+height: 100%;
+overflow: hidden;
+background: #070906;
+font-family: 'PT Sans', sans-serif;
+overscroll-behavior: none;
+-webkit-touch-callout: none;
+}
+#wrap {
+position: fixed;
+inset: 0;
+}
+canvas#game {
+position: absolute;
+inset: 0;
+display: block;
+cursor: crosshair;
+touch-action: none;
+}
+.hidden {
+display: none !important;
+}
+#vignette {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 3;
+background: radial-gradient(ellipse at center, transparent 52%, rgba(4, 7, 3, .62) 100%);
+}
+#grain {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 4;
+opacity: .07;
+mix-blend-mode: overlay;
+}
+#frost {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 5;
+opacity: 0;
+transition: opacity .4s;
+box-shadow: inset 0 0 160px 46px rgba(120, 180, 255, .6);
+background: radial-gradient(ellipse at center, transparent 58%, rgba(150, 195, 255, .22));
+}
+#hurt {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 6;
+opacity: 0;
+background: radial-gradient(ellipse at center, transparent 38%, rgba(160, 20, 8, .6));
+}
+#madness {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 5;
+opacity: 0;
+transition: opacity .8s;
+background: radial-gradient(ellipse at center, transparent 30%, rgba(12, 4, 22, .85));
+}
+#lowWarning {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 7;
+opacity: 0;
+transition: opacity .3s;
+border: 6px solid rgba(200, 50, 30, 0);
+box-shadow: inset 0 0 100px rgba(200, 50, 30, 0);
+}
+#lowWarning.active {
+opacity: 1;
+border-color: rgba(200, 50, 30, .35);
+box-shadow: inset 0 0 100px rgba(200, 50, 30, .15);
+}
+#hungerWarning {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 7;
+opacity: 0;
+transition: opacity .3s;
+border: 6px solid rgba(200, 160, 30, 0);
+box-shadow: inset 0 0 100px rgba(200, 160, 30, 0);
+}
+#hungerWarning.active {
+opacity: 1;
+border-color: rgba(200, 160, 30, .35);
+box-shadow: inset 0 0 100px rgba(200, 160, 30, .15);
+}
+#hud {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 13;
+}
+.chip {
+background: linear-gradient(160deg, #ddd0a4, #c3ad7f);
+color: var(--ink);
+border: 2px solid #5c4a2e;
+border-radius: 14px 20px 12px 22px/20px 12px 22px 14px;
+box-shadow: 0 5px 16px rgba(0, 0, 0, .55), inset 0 0 20px rgba(96, 64, 22, .28);
+}
+#clockbox {
+position: absolute;
+top: 14px;
+left: 14px;
+padding: 8px 14px 8px 8px;
+display: flex;
+gap: 10px;
+align-items: center;
+}
+#dayLabel {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 36px;
+line-height: .9;
+}
+#seasonLabel {
+font-family: Neucha;
+font-size: 16px;
+color: #7a3416;
+}
+#phaseLabel {
+font-size: 12px;
+opacity: .65;
+}
+#meters {
+position: absolute;
+top: 14px;
+right: 14px;
+display: flex;
+gap: 10px;
+}
+.meter {
+padding: 5px;
+}
+#msglog {
+position: absolute;
+left: 16px;
+bottom: 220px;
+width: 380px;
+z-index: 14;
+pointer-events: none;
+}
+.msg {
+font-family: Neucha;
+font-size: 17px;
+color: #f0e6c8;
+text-shadow: 0 2px 5px #000;
+background: rgba(18, 14, 9, .55);
+border-left: 3px solid #a08c5e;
+padding: 4px 12px;
+margin-top: 5px;
+border-radius: 4px 12px 12px 4px;
+animation: msgIn .3s ease, msgOut .6s ease 4s forwards;
+}
+.msg.hint {
+border-color: var(--ember);
+color: #ffd9a0;
+}
+.msg.day {
+border-color: #e8d9b0;
+font-size: 21px;
+font-family: 'Amatic SC';
+letter-spacing: 2px;
+}
+.msg.danger {
+border-color: #c0392b;
+color: #ffb4a6;
+font-size: 19px;
+}
+.msg.warning {
+border-color: #e8a83c;
+color: #ffe08a;
+font-size: 19px;
+animation: msgIn .3s ease, msgOut .6s ease 5s forwards;
+}
+@keyframes msgIn {
+from {
+opacity: 0;
+transform: translateX(-16px)
+}
+}
+@keyframes msgOut {
+to {
+opacity: 0;
+transform: translateY(8px)
+}
+}
+#hotbarWrap {
+position: absolute;
+bottom: 12px;
+left: 50%;
+transform: translateX(-50%);
+transform-origin: bottom center;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 3px;
+max-width: 98vw;
+}
+#heldName {
+font-family: Neucha;
+font-size: 15px;
+color: #ffd9a0;
+text-shadow: 0 2px 4px #000;
+min-height: 18px;
+text-align: center;
+}
+#hotbar {
+display: flex;
+gap: 5px;
+padding: 6px 8px;
+background: rgba(15, 12, 8, .80);
+border: 2px solid #5c4a2e;
+border-radius: 14px;
+pointer-events: auto;
+box-shadow: 0 6px 18px rgba(0, 0, 0, .6);
+flex-wrap: wrap;
+justify-content: center;
+}
+.slot {
+width: 52px;
+height: 52px;
+background: #241f16;
+border: 2px solid #6b5836;
+border-radius: 8px;
+position: relative;
+cursor: pointer;
+transition: transform .13s, border-color .13s, box-shadow .13s;
+touch-action: manipulation;
+flex-shrink: 0;
+}
+.slot:hover {
+transform: translateY(-3px);
+}
+.slot.sel {
+border-color: var(--ember);
+box-shadow: 0 0 14px rgba(224, 138, 46, .55), inset 0 0 9px rgba(224, 138, 46, .25);
+transform: translateY(-4px);
+}
+.slot .cnt {
+position: absolute;
+right: 4px;
+bottom: 5px;
+font: 700 12px 'PT Sans';
+color: #f0e6c8;
+text-shadow: 0 1px 2px #000;
+}
+.slot .key {
+position: absolute;
+left: 4px;
+top: 2px;
+font: 10px 'PT Sans';
+color: #8f8266;
+}
+.slot .dur {
+position: absolute;
+left: 5px;
+right: 5px;
+bottom: 3px;
+height: 3px;
+background: rgba(0, 0, 0, .7);
+border-radius: 2px;
+}
+.slot .dur i {
+display: block;
+height: 100%;
+background: var(--ember);
+border-radius: 2px;
+}
+.slot .eqTag {
+position: absolute;
+left: 2px;
+top: 2px;
+font: 7px 'PT Sans';
+color: #8fbf54;
+background: rgba(0, 0, 0, .6);
+padding: 0 3px;
+border-radius: 2px;
+letter-spacing: .3px;
+}
+#equipBar {
+display: flex;
+gap: 5px;
+padding: 4px 6px;
+background: rgba(15, 12, 8, .70);
+border: 2px solid #4a3a28;
+border-radius: 10px;
+pointer-events: auto;
+margin-bottom: 2px;
+flex-wrap: wrap;
+justify-content: center;
+}
+#equipBar .slot {
+width: 44px;
+height: 44px;
+background: #1a1610;
+border-color: #5a4a32;
+}
+#equipBar .slot.sel {
+border-color: #7ac0e8;
+box-shadow: 0 0 12px rgba(122, 192, 232, .4);
+transform: translateY(-2px);
+}
+#equipBar .slot .key {
+font-size: 8px;
+}
+#equipBar .slot canvas {
+width: 36px;
+height: 36px;
+}
+#backpackSlots {
+display: none;
+gap: 4px;
+padding: 4px 6px;
+background: rgba(15, 12, 8, .60);
+border: 2px solid #4a3a28;
+border-radius: 10px;
+pointer-events: auto;
+margin-top: 2px;
+flex-wrap: wrap;
+justify-content: center;
+max-width: 340px;
+}
+#backpackSlots .slot {
+width: 38px;
+height: 38px;
+background: #1a1610;
+border-color: #5a4a32;
+}
+#backpackSlots .slot canvas {
+width: 30px;
+height: 30px;
+}
+#backpackSlots .slot .cnt {
+font-size: 9px;
+right: 2px;
+bottom: 2px;
+}
+#backpackSlots .slot .key {
+display: none;
+}
+#backpackSlots.open {
+display: flex;
+}
+#craft {
+position: absolute;
+top: 104px;
+right: 14px;
+width: 256px;
+padding: 10px 12px 6px;
+pointer-events: auto;
+max-height: max(150px, calc(100vh - 350px));
+display: flex;
+flex-direction: column;
+transition: transform .35s cubic-bezier(.6, -0.2, .3, 1.3), opacity .3s;
+z-index: 15;
+}
+#craft.closed {
+transform: translateX(115%) rotate(2deg);
+opacity: 0;
+pointer-events: none;
+}
+#craftHead {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 32px;
+letter-spacing: 3px;
+flex-shrink: 0;
+}
+#craftHead span {
+font-family: 'PT Sans';
+font-size: 11px;
+letter-spacing: 0;
+opacity: .6;
+}
+#craftList {
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
+flex: 1 1 auto;
+min-height: 0;
+margin-top: 6px;
+scroll-behavior: smooth;
+touch-action: pan-y;
+}
+#craftList::-webkit-scrollbar {
+width: 6px;
+}
+#craftList::-webkit-scrollbar-track {
+background: rgba(0, 0, 0, .2);
+border-radius: 3px;
+}
+#craftList::-webkit-scrollbar-thumb {
+background: #5c4a2e;
+border-radius: 3px;
+}
+.crow {
+display: flex;
+gap: 10px;
+align-items: center;
+padding: 7px 6px;
+border-top: 1px dashed #9a855f;
+cursor: pointer;
+transition: background .15s, transform .15s;
+touch-action: manipulation;
+}
+.crow:hover {
+background: rgba(120, 90, 40, .2);
+transform: translateX(4px);
+}
+.crow.no {
+opacity: .5;
+filter: saturate(.5);
+}
+.crow.locked {
+opacity: .6;
+filter: grayscale(.7);
+}
+.crow .cname {
+font-family: Neucha;
+font-size: 18px;
+line-height: 1;
+}
+.crow .cdesc {
+font-size: 11px;
+opacity: .7;
+}
+.ccost {
+display: flex;
+gap: 8px;
+margin-top: 3px;
+flex-wrap: wrap;
+}
+.chipC {
+display: flex;
+align-items: center;
+gap: 3px;
+font: 700 12px 'PT Sans';
+color: #4a3a22;
+}
+.chipC.miss {
+color: #a02418;
+}
+#rightCol {
+position: absolute;
+right: 12px;
+bottom: 120px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 10px;
+pointer-events: auto;
+z-index: 14;
+}
+#actGrid {
+display: grid;
+grid-template-columns: repeat(2, auto);
+gap: 10px;
+}
+.tbtn {
+width: 70px;
+height: 70px;
+border-radius: 50%;
+border: 2px solid #5c4a2e;
+background: rgba(20, 16, 10, .68);
+color: #ffd9a0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 2px;
+box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+touch-action: manipulation;
+cursor: pointer;
+transition: transform .1s, background .1s, opacity .2s;
+}
+.tbtn .tico {
+font-size: 26px;
+line-height: 1;
+}
+.tbtn .tlab {
+font-family: Neucha;
+font-size: 12px;
+line-height: 1;
+}
+.tbtn:active {
+transform: scale(.9);
+background: rgba(224, 138, 46, .4);
+}
+.tbtn.off {
+opacity: .42;
+filter: saturate(.35);
+}
+.tbtn.off:active {
+transform: none;
+background: rgba(20, 16, 10, .68);
+}
+.tbtn.deny {
+animation: deny .25s ease;
+}
+@keyframes deny {
+25% {
+transform: translateX(-5px)
+}
+75% {
+transform: translateX(5px)
+}
+}
+#topbtns {
+display: flex;
+flex-direction: row;
+gap: 8px;
+}
+#topbtns button {
+width: 44px;
+height: 44px;
+font-family: Neucha;
+font-size: 19px;
+cursor: pointer;
+color: var(--ink);
+background: linear-gradient(160deg, #ddd0a4, #c3ad7f);
+border: 2px solid #5c4a2e;
+border-radius: 10px 14px 10px 16px;
+box-shadow: 0 4px 0 #3c2f1c, 0 6px 12px rgba(0, 0, 0, .5);
+transition: transform .12s;
+touch-action: manipulation;
+}
+#topbtns button:hover {
+transform: translateY(-3px) rotate(-3deg);
+}
+#topbtns button:active {
+transform: translateY(1px);
+}
+#touchUI {
+position: absolute;
+inset: 0;
+pointer-events: none;
+z-index: 12;
+}
+#joyZone {
+position: absolute;
+left: 0;
+bottom: 0;
+width: 50%;
+height: 58%;
+pointer-events: auto;
+touch-action: none;
+}
+#joyBase {
+position: absolute;
+width: 116px;
+height: 116px;
+border-radius: 50%;
+border: 2px solid rgba(240, 230, 200, .45);
+background: rgba(20, 16, 10, .35);
+display: none;
+transform: translate(-50%, -50%);
+}
+#joyBase.on {
+display: block;
+}
+#joyKnob {
+position: absolute;
+left: 50%;
+top: 50%;
+width: 54px;
+height: 54px;
+margin: -27px 0 0 -27px;
+border-radius: 50%;
+background: linear-gradient(160deg, #ddd0a4, #c3ad7f);
+border: 2px solid #5c4a2e;
+box-shadow: 0 3px 12px rgba(0, 0, 0, .55);
+}
+.screen {
+position: absolute;
+inset: 0;
+z-index: 20;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 14px;
+transition: opacity .7s;
+text-align: center;
+padding: 12px;
+overflow-y: auto;
+}
+.screen.gone {
+opacity: 0;
+pointer-events: none;
+}
+#startScreen {
+background: radial-gradient(ellipse at 50% 38%, rgba(12, 14, 8, .30), rgba(5, 7, 4, .90) 78%);
+}
+#kicker {
+letter-spacing: 7px;
+font-size: 12px;
+font-weight: 700;
+color: #c9a86a;
+text-transform: uppercase;
+}
+#startScreen h1 {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: clamp(64px, 13vw, 152px);
+line-height: .88;
+margin: 0;
+color: #e8d9b0;
+letter-spacing: 6px;
+transform: rotate(-2deg);
+text-shadow: 0 5px 0 #3a2c18, 0 14px 34px rgba(0, 0, 0, .85);
+animation: tf 5.5s ease-in-out infinite;
+}
+@keyframes tf {
+0%,
+100% {
+transform: rotate(-2deg) translateY(0)
+}
+50% {
+transform: rotate(-2deg) translateY(-7px)
+}
+}
+#subtitle {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: clamp(22px, 4.5vw, 46px);
+letter-spacing: 12px;
+color: #c0392b;
+text-shadow: 0 3px 0 #2a0d07, 0 8px 22px #000;
+margin-top: -4px;
+}
+#tagline {
+font-family: Neucha;
+font-size: 19px;
+color: #cbbd9a;
+margin: 2px 0 10px;
+}
+#controls {
+display: grid;
+grid-template-columns: auto auto;
+gap: 7px 34px;
+margin: 4px 0 10px;
+}
+.crow2 {
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 14px;
+color: #cfc3a2;
+text-align: left;
+}
+kbd {
+background: #14110b;
+border: 1px solid #6b5836;
+border-bottom-width: 3px;
+padding: 2px 9px;
+border-radius: 6px;
+font: 12px 'PT Sans';
+color: #ffd9a0;
+min-width: 44px;
+text-align: center;
+}
+.bigbtn {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 38px;
+letter-spacing: 4px;
+padding: 8px 52px;
+cursor: pointer;
+color: #f5e3c0;
+background: linear-gradient(#8e2f22, #6d2115);
+border: 2px solid #3c140c;
+border-radius: 12px 20px 14px 22px/20px 12px 22px 14px;
+box-shadow: 0 7px 0 #2a0d07, 0 14px 30px rgba(0, 0, 0, .65);
+transition: transform .18s, box-shadow .18s;
+touch-action: manipulation;
+}
+.bigbtn:hover {
+transform: translateY(-4px) scale(1.04);
+box-shadow: 0 10px 0 #2a0d07, 0 18px 44px rgba(224, 138, 46, .35);
+}
+.bigbtn:active {
+transform: translateY(2px);
+box-shadow: 0 3px 0 #2a0d07;
+}
+#fineprint {
+font-size: 11px;
+color: #8d8468;
+opacity: .7;
+margin-top: 8px;
+}
+#deathScreen {
+background: radial-gradient(ellipse at center, rgba(40, 8, 5, .72), rgba(8, 3, 2, .94) 80%);
+z-index: 22;
+}
+#deathScreen h2 {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: clamp(64px, 11vw, 130px);
+margin: 0;
+color: #d33b2a;
+letter-spacing: 8px;
+transform: rotate(-2deg);
+text-shadow: 0 5px 0 #200503, 0 16px 40px #000;
+}
+#deathCause {
+font-family: Neucha;
+font-size: 21px;
+color: #e8c9a0;
+}
+#deathStats {
+display: flex;
+gap: 16px;
+margin: 8px 0 14px;
+flex-wrap: wrap;
+justify-content: center;
+}
+.stat {
+padding: 10px 20px;
+}
+.stat b {
+display: block;
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 46px;
+line-height: .9;
+}
+.stat span {
+font-size: 12px;
+opacity: .75;
+}
+#pauseScreen {
+background: rgba(6, 8, 4, .82);
+z-index: 21;
+}
+#pauseScreen h2 {
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 64px;
+color: #e8d9b0;
+margin: 0;
+letter-spacing: 6px;
+}
+@media (pointer:coarse) {
+.slot {
+width: 58px;
+height: 58px;
+}
+#topbtns button {
+width: 50px;
+height: 50px;
+font-size: 21px;
+}
+#rightCol {
+bottom: 126px;
+}
+#heldName {
+font-size: 13px;
+}
+#equipBar .slot {
+width: 48px;
+height: 48px;
+}
+#equipBar .slot canvas {
+width: 38px;
+height: 38px;
+}
+#backpackSlots .slot {
+width: 42px;
+height: 42px;
+}
+#backpackSlots .slot canvas {
+width: 34px;
+height: 34px;
+}
+#craft {
+width: 220px;
+right: 6px;
+top: 80px;
+max-height: calc(100vh - 300px);
+}
+}
+@media (max-height:460px) {
+.tbtn {
+width: 60px;
+height: 60px;
+}
+.tbtn .tico {
+font-size: 22px;
+}
+#rightCol {
+bottom: 100px;
+}
+#equipBar .slot {
+width: 38px;
+height: 38px;
+}
+#equipBar .slot canvas {
+width: 30px;
+height: 30px;
+}
+#backpackSlots .slot {
+width: 34px;
+height: 34px;
+}
+#backpackSlots .slot canvas {
+width: 26px;
+height: 26px;
+}
+#craft {
+width: 200px;
+right: 4px;
+top: 70px;
+max-height: calc(100vh - 260px);
+}
+}
+@media (max-width:760px) {
+#controls {
+grid-template-columns: auto;
+}
+#craft {
+width: 200px;
+right: 4px;
+top: 70px;
+}
+#msglog {
+width: 220px;
+left: 8px;
+bottom: 200px;
+}
+#dayLabel {
+font-size: 28px;
+}
+#equipBar .slot {
+width: 40px;
+height: 40px;
+}
+#equipBar .slot canvas {
+width: 32px;
+height: 32px;
+}
+#hotbar {
+gap: 3px;
+padding: 4px 6px;
+}
+.slot {
+width: 44px;
+height: 44px;
+}
+.slot canvas {
+width: 36px;
+height: 36px;
+}
+}
+#bpLabel {
+font-family: Neucha;
+font-size: 11px;
+color: #a09070;
+text-align: center;
+margin-top: 2px;
+letter-spacing: 1px;
+}
+#mapOverlay {
+position: absolute;
+inset: 0;
+z-index: 30;
+background: rgba(14, 12, 8, .88);
+display: none;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+pointer-events: auto;
+touch-action: none;
+padding: 20px;
+transition: opacity .35s ease;
+opacity: 0;
+}
+#mapOverlay.open {
+display: flex;
+opacity: 1;
+}
+#mapCanvasWrap {
+position: relative;
+width: 100%;
+max-width: min(96vh, 96vw);
+aspect-ratio: 1;
+background: #1a1610;
+border: 4px solid #5c4a2e;
+border-radius: 16px;
+box-shadow: 0 0 60px rgba(0, 0, 0, .85), inset 0 0 40px rgba(0, 0, 0, .5);
+overflow: hidden;
+touch-action: none;
+}
+#mapCanvasWrap canvas {
+display: block;
+width: 100%;
+height: 100%;
+image-rendering: pixelated;
+touch-action: none;
+}
+#mapCloseBtn {
+position: absolute;
+top: 8px;
+right: 12px;
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 28px;
+color: #e8d9b0;
+background: rgba(20, 16, 10, .8);
+border: 2px solid #5c4a2e;
+border-radius: 50%;
+width: 44px;
+height: 44px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 31;
+touch-action: manipulation;
+transition: transform .15s, background .15s;
+}
+#mapCloseBtn:hover {
+transform: scale(1.1);
+background: rgba(40, 30, 18, .9);
+}
+#mapCloseBtn:active {
+transform: scale(.92);
+}
+#mapLegend {
+position: absolute;
+bottom: 10px;
+left: 12px;
+font-family: Neucha;
+font-size: 12px;
+color: #cbbd9a;
+background: rgba(10, 8, 5, .7);
+padding: 4px 10px;
+border-radius: 6px;
+border: 1px solid #5c4a2e;
+pointer-events: none;
+z-index: 31;
+display: flex;
+gap: 12px;
+flex-wrap: wrap;
+}
+#mapLegend span {
+display: flex;
+align-items: center;
+gap: 4px;
+}
+#mapLegend .dot {
+display: inline-block;
+width: 8px;
+height: 8px;
+border-radius: 50%;
+border: 1px solid rgba(0, 0, 0, .3);
+}
+#mapTitle {
+position: absolute;
+top: 10px;
+left: 50%;
+transform: translateX(-50%);
+font-family: 'Amatic SC';
+font-weight: 700;
+font-size: 26px;
+color: #e8d9b0;
+text-shadow: 0 2px 8px #000;
+letter-spacing: 4px;
+z-index: 31;
+pointer-events: none;
+background: rgba(10, 8, 5, .5);
+padding: 0 16px;
+border-radius: 8px;
+border: 1px solid rgba(92, 74, 46, .3);
+}
+#mapPct {
+position: absolute;
+bottom: 12px;
+right: 14px;
+font-family: 'PT Sans';
+font-size: 13px;
+color: #cbbd9a;
+background: rgba(10, 8, 5, .7);
+padding: 2px 10px;
+border-radius: 4px;
+border: 1px solid #5c4a2e;
+z-index: 31;
+pointer-events: none;
+}
+@media (pointer:coarse) {
+#mapCanvasWrap {
+max-width: min(92vh, 94vw);
+}
+#mapTitle {
+font-size: 20px;
+top: 6px;
+padding: 0 12px;
+}
+#mapCloseBtn {
+width: 40px;
+height: 40px;
+font-size: 24px;
+top: 4px;
+right: 8px;
+}
+#mapLegend {
+font-size: 10px;
+bottom: 6px;
+left: 6px;
+padding: 3px 8px;
+gap: 8px;
+}
+#mapPct {
+font-size: 11px;
+bottom: 8px;
+right: 8px;
+padding: 2px 8px;
+}
+}
+@media (max-width:500px) {
+#mapTitle {
+font-size: 16px;
+top: 4px;
+padding: 0 10px;
+}
+#mapCloseBtn {
+width: 34px;
+height: 34px;
+font-size: 20px;
+top: 2px;
+right: 6px;
+}
+#mapLegend {
+font-size: 9px;
+bottom: 4px;
+left: 4px;
+padding: 2px 6px;
+gap: 5px;
+}
+#mapPct {
+font-size: 9px;
+bottom: 4px;
+right: 4px;
+padding: 1px 6px;
+}
+}
+#fishingBar {
+position: absolute;
+bottom: 200px;
+left: 50%;
+transform: translateX(-50%);
+width: 200px;
+height: 16px;
+background: rgba(10, 8, 5, .8);
+border: 2px solid #5c4a2e;
+border-radius: 8px;
+z-index: 16;
+display: none;
+overflow: hidden;
+}
+#fishingBar .fill {
+height: 100%;
+background: linear-gradient(90deg, #3a8ab5, #6ac8e8);
+border-radius: 6px;
+width: 0%;
+transition: width .05s linear;
+}
+#fishingBar .label {
+position: absolute;
+inset: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: Neucha;
+font-size: 11px;
+color: #f0e6c8;
+text-shadow: 0 1px 3px #000;
+}
+#chestUI {
+position: absolute;
+bottom: 140px;
+left: 50%;
+transform: translateX(-50%);
+background: rgba(15, 12, 8, .92);
+border: 2px solid #5c4a2e;
+border-radius: 14px;
+padding: 10px;
+z-index: 17;
+display: none;
+flex-direction: column;
+align-items: center;
+gap: 6px;
+min-width: 280px;
+max-width: 90vw;
+pointer-events: auto;
+}
+#chestUI.open {
+display: flex;
+}
+#chestUI .chestHeader {
+font-family: 'Amatic SC';
+font-size: 26px;
+color: #e8d9b0;
+letter-spacing: 2px;
+}
+#chestUI .chestSlots {
+display: flex;
+gap: 5px;
+flex-wrap: wrap;
+justify-content: center;
+padding: 4px;
+}
+#chestUI .chestSlots .slot {
+width: 44px;
+height: 44px;
+background: #1a1610;
+border: 2px solid #5a4a32;
+border-radius: 6px;
+position: relative;
+cursor: pointer;
+}
+#chestUI .chestSlots .slot canvas {
+width: 36px;
+height: 36px;
+}
+#chestUI .chestSlots .slot .cnt {
+position: absolute;
+right: 2px;
+bottom: 2px;
+font: 700 10px 'PT Sans';
+color: #f0e6c8;
+text-shadow: 0 1px 2px #000;
+}
+#chestUI .chestClose {
+font-family: Neucha;
+font-size: 18px;
+color: #ffd9a0;
+background: rgba(20, 16, 10, .8);
+border: 2px solid #5c4a2e;
+border-radius: 8px;
+padding: 2px 14px;
+cursor: pointer;
+touch-action: manipulation;
+}
+#chestUI .chestClose:active {
+transform: scale(.95);
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="grain"></div>
+<div id="frost"></div>
+<div id="hurt"></div>
+<div id="madness"></div>
+<div id="lowWarning"></div>
+<div id="hungerWarning"></div>
+<div id="chestUI">
+<div class="chestHeader">📦 СУНДУК</div>
+<div class="chestSlots" id="chestSlots"></div>
+<button class="chestClose" id="chestClose">Закрыть</button>
+</div>
+<div id="mapOverlay">
+<div id="mapCanvasWrap">
+<canvas id="mapCanvas"></canvas>
+<div id="mapTitle">🗺️ КАРТА</div>
+<button id="mapCloseBtn">✕</button>
+<div id="mapLegend">
+<span><span class="dot" style="background:#3a5a30;"></span> лес</span>
+<span><span class="dot" style="background:#7a7a72;"></span> скалы</span>
+<span><span class="dot" style="background:#b8a86a;"></span> саванна</span>
+<span><span class="dot" style="background:#4a6a5a;"></span> болото</span>
+<span><span class="dot" style="background:#8a9a6a;"></span> деревня</span>
+<span><span class="dot" style="background:#6a6a7a;border-color:#4a4a5a;"></span> шахматы</span>
+<span><span class="dot" style="background:#e8c23c;border-color:#a8862a;"></span> Свин-король</span>
+<span><span class="dot" style="background:#3a8ab5;"></span> пруд</span>
+<span><span class="dot" style="background:#ff6a1e;"></span> вы</span>
+<span><span class="dot" style="background:#a0a0b0;border-color:#666;"></span> шахматный конь</span>
+</div>
+<div id="mapPct">0%</div>
+</div>
+</div>
+<div id="touchUI" class="hidden">
+<div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div></div>
+</div>
+<div id="hud" class="hidden">
+<div id="clockbox" class="chip">
+<canvas id="clockCv" width="84" height="84"></canvas>
+<div><div id="dayLabel">День 1</div><div id="seasonLabel">Осень</div><div id="phaseLabel">Утро</div></div>
+</div>
+<div id="meters">
+<div class="meter chip"><canvas id="mHp" width="62" height="62"></canvas></div>
+<div class="meter chip"><canvas id="mHun" width="62" height="62"></canvas></div>
+<div class="meter chip"><canvas id="mSan" width="62" height="62"></canvas></div>
+</div>
+<div id="msglog"></div>
+<div id="fishingBar"><div class="fill" id="fishFill"></div><div class="label">🎣 Ловля...</div></div>
+<div id="hotbarWrap">
+<div id="heldName"></div>
+<div id="equipBar"></div>
+<div id="hotbar"></div>
+<div id="backpackSlots"></div>
+<div id="bpLabel">🎒 рюкзак</div>
+</div>
+<div id="craft" class="chip closed">
+<div id="craftHead">КРАФТ <span id="craftHint">— клавиша Tab</span></div>
+<div id="craftList"></div>
+</div>
+<div id="rightCol">
+<div id="touchBtns" class="hidden">
+<div id="actGrid">
+<button id="tAttack" class="tbtn off"><span class="tico">⚔</span><span class="tlab">атака</span></button>
+<button id="tTake" class="tbtn off"><span class="tico">🤲</span><span class="tlab">взять</span></button>
+<button id="tCook" class="tbtn" style="display:none"><span class="tico">🔥</span><span class="tlab">жарить</span></button>
+<button id="tEat" class="tbtn"><span class="tico">🍖</span><span class="tlab">есть</span></button>
+<button id="tPlant" class="tbtn" style="display:none"><span class="tico">🌱</span><span class="tlab">посадить</span></button>
+<button id="tFish" class="tbtn" style="display:none"><span class="tico">🎣</span><span class="tlab">рыбачить</span></button>
+<button id="tCatch" class="tbtn" style="display:none"><span class="tico">🕸️</span><span class="tlab">поймать</span></button>
+<button id="tChestStore" class="tbtn" style="display:none"><span class="tico">📦</span><span class="tlab">положить</span></button>
+</div>
+</div>
+<div id="topbtns">
+<button id="btnCraft" title="Крафт">⚒</button>
+<button id="btnMap" title="Карта">🗺️</button>
+<button id="btnMute" title="Звук">♪</button>
+<button id="btnPause" title="Пауза">Ⅱ</button>
+</div>
+</div>
+</div>
+<div id="startScreen" class="screen">
+<div id="kicker">HTML5 · Canvas · фанатский клон</div>
+<h1>НЕ&nbsp;ГОЛОДАЙ</h1>
+<div id="subtitle">ЦАРСТВО ГИГАНТОВ</div>
+<p id="tagline">Собирай. Крафти. Торгуй с королём. Переживи ночь — и гиганта. Остерегайся механических шахматных коней в шахматном биоме!</p>
+<div id="controls">
+<div class="crow2"><kbd>WASD</kbd>движение · <kbd>Shift</kbd>бег</div>
+<div class="crow2"><kbd>ЛКМ</kbd>действие / атака</div>
+<div class="crow2"><kbd>ПКМ</kbd> / <kbd>F</kbd>съесть выбранное</div>
+<div class="crow2"><kbd>E</kbd>жарить мясо у огня</div>
+<div class="crow2"><kbd>1–0</kbd> / колесо — слоты</div>
+<div class="crow2"><kbd>Tab</kbd>крафт · <kbd>Esc</kbd>пауза</div>
+<div class="crow2"><kbd>Q</kbd>выбросить предмет из слота</div>
+<div class="crow2"><kbd>M</kbd>карта</div>
+</div>
+<button class="bigbtn" id="btnStart">Начать выживание</button>
+<div id="fineprint">Неофициальная фан-работа по мотивам Don't Starve: Reign of Giants. Все механики воссозданы с нуля.</div>
+</div>
+<div id="deathScreen" class="screen hidden">
+<h2>ТЫ ПОГИБ</h2>
+<div id="deathCause"></div>
+<div id="deathStats"></div>
+<button class="bigbtn" id="btnRetry">Попробовать снова</button>
+</div>
+<div id="pauseScreen" class="screen hidden">
+<h2>ПАУЗА</h2>
+<div id="pauseControls" style="display:grid;grid-template-columns:auto;gap:7px;">
+<div class="crow2"><kbd>WASD</kbd>движение</div>
+<div class="crow2"><kbd>ЛКМ</kbd>действие · <kbd>E</kbd>жарить · <kbd>F</kbd>есть</div>
+<div class="crow2"><kbd>Tab</kbd>крафт · <kbd>M</kbd>звук · <kbd>Q</kbd>выбросить</div>
+<div class="crow2"><kbd>M</kbd>карта</div>
+</div>
+<button class="bigbtn" id="btnResume">Продолжить</button>
+</div>
+</div>
+
+<script src="js/utils.js"></script>
+<script src="js/items.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/inventory.js"></script>
+<script src="js/crafting.js"></script>
+<script src="js/player.js"></script>
+<script src="js/mobs.js"></script>
+<script src="js/rendering.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/input.js"></script>
+<script src="js/game.js"></script>
+</body>
 </html>
