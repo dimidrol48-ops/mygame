@@ -1,1 +1,4 @@
-(js/mobs.js is a source file, no build artifacts, dependencies, or temp files in the changes)
+(js/game.js, js/mobs.js, js/player.js - these are source files, no build artifacts or dependencies detected)
+
+# No build artifacts, dependencies, or temp files detected in changes
+# Source files only - no ignores needed
