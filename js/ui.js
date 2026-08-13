@@ -33,6 +33,14 @@ const t = findNearestInteract();
 if (t) { aimAt(t); onClickEntity(t); return; }
 flashBtn('tTake');
 }
+function touchIgnite() {
+if (state !== 'play' || paused || mapVisible) return;
+const held = getActiveItem();
+if (!held || held.id !== 'torch') { flashBtn('tIgnite'); msg('Нужен факел в руках', 'hint'); return; }
+const tree = findNearestInRadius(G.player.x, G.player.y, REACH + 50, e => e.type === 'tree' && !e.dead && !e.ignited);
+if (tree) { aimAt(tree); onClickEntity(tree); return; }
+flashBtn('tIgnite'); msg('Нет цели для поджога рядом', 'hint');
+}
 function setTakeBtn(icon, label) {
 if (G._takeIco === icon && G._takeLab === label) return;
 G._takeIco = icon; G._takeLab = label;
@@ -250,6 +258,12 @@ else { hw.style.opacity = '0'; hw.classList.remove('active'); }
 if (isTouch && state === 'play' && !mapVisible) {
 const nearFire2 = nearFire(p.x, p.y, 160);
 $('tCook').style.display = (nearFire2 && !fishingActive) ? 'flex' : 'none';
+// кнопка поджога дерева факелом
+const heldTorch = getActiveItem();
+const hasTorch = heldTorch && heldTorch.id === 'torch';
+const nearTree = hasTorch ? findNearestInRadius(p.x, p.y, REACH + 50, e => e.type === 'tree' && !e.dead && !e.ignited) : null;
+$('tIgnite').style.display = (hasTorch && nearTree) ? 'flex' : 'none';
+$('tIgnite').classList.toggle('off', !(hasTorch && nearTree));
 $('tAttack').classList.toggle('off', !G.nearEnemy);
 const nearChest = findNearestInRadius(p.x, p.y, REACH + 50, e => (e.type === 'chest' || e.type === 'icebox') && !e.dead);
 const hasItem = getHeld() !== null;
