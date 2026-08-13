@@ -86,10 +86,14 @@ else msg('Нет дёрна в инвентаре');
 return;
 }
 switch (t.type) {
-case 'grass': if (t.ready) startJob(t); break;
-case 'sapling': if (t.ready) startJob(t); break;
-case 'berry': if (t.ready) startJob(t); break;
-case 'carrot': startJob(t); break;
+case 'grass': case 'sapling': case 'berry': case 'carrot': {
+held = getActiveItem();
+if (held && ITEMS[held.id] && ITEMS[held.id].tool && ITEMS[held.id].tool.kind === 'torch' && !t.ignited) {
+t.ignited = true; t.burnT = 0; t.burnMax = rand(2, 4);
+sfx.ignite(); burst(t.x, t.y - 20, 8, '#ff9a3c', 70, .6);
+msg('Объект загорелся!', 'danger');
+} else if (t.ready) startJob(t);
+} break;
 case 'flint': startJob(t); break;
 case 'stoneItem': startJob(t); break;
 case 'pinecone': startJob(t); break;
@@ -104,8 +108,7 @@ msg('Дерево вспыхнуло! Огонь может перекинуть
 } break;
 case 'rock': case 'goldrock': startJob(t); break;
 case 'marble_tree': startJob(t); break;
-// поджог горючих объектов факелом
-case 'grass': case 'sapling': case 'berry': case 'carrot': case 'wildhive': case 'beehive': case 'chest': case 'icebox': case 'trap': case 'science': case 'drier': {
+case 'wildhive': case 'beehive': case 'chest': case 'icebox': case 'trap': case 'science': case 'drier': {
 held = getActiveItem();
 if (held && ITEMS[held.id] && ITEMS[held.id].tool && ITEMS[held.id].tool.kind === 'torch' && !t.ignited) {
 t.ignited = true; t.burnT = 0; t.burnMax = rand(2, 4);
@@ -115,6 +118,7 @@ msg('Объект загорелся!', 'danger');
 } break;
 case 'nest': cancelJob(); doSwing(t); break;
 case 'wildhive': {
+if (t.ignited) { msg('Улей горит! Не трогай его.'); return; }
 held = getActiveItem();
 if (held && held.id === 'honey') { msg('Ты уже собрал мёд? Подожди, пока пчёлы сделают новый.'); return; }
 if (t.honey > 0 && !t.angry) {
@@ -143,6 +147,7 @@ ent({ type: 'bee', x: t.x + Math.cos(ba) * br, y: t.y + Math.sin(ba) * br, hp: 1
 else msg('В улье нет мёда. Подожди.');
 } break;
 case 'beehive': {
+if (t.ignited) { msg('Улей горит! Не трогай его.'); return; }
 held = getActiveItem();
 t.beeCount = t.beeCount || 0;
 // ЗАСЕЛЕНИЕ пойманной пчелой
@@ -249,9 +254,10 @@ burst(t.x, t.y - 16, 6, '#ff9a3c', 50);
 } else msg('Костру нужно топливо: брёвна, хворост, трава, шишки, дёрн или гниль');
 } break;
 case 'rabbitHole': msg(pick(['Из норы пахнет длиннухом.', 'Нора пуста. Пока.', 'Кто-то шевелится внутри...'])); break;
-case 'trap': msg(t.armed ? 'Силок взведён — жди добычу.' : 'Пустой силок.'); break;
-case 'science': msg('Научная машина гудит. Пока ты рядом — открыты сложные рецепты.'); if (!G.flags.sciUsed) { G.flags.sciUsed = 1; msg('Загляни в крафт: появились броня, сушилка и рюкзак', 'hint'); } break;
+case 'trap': if (t.ignited) { msg('Силок горит! Не трогай его.'); return; } msg(t.armed ? 'Силок взведён — жди добычу.' : 'Пустой силок.'); break;
+case 'science': if (t.ignited) { msg('Машина горит! Не трогай её.'); return; } msg('Научная машина гудит. Пока ты рядом — открыты сложные рецепты.'); if (!G.flags.sciUsed) { G.flags.sciUsed = 1; msg('Загляни в крафт: появились броня, сушилка и рюкзак', 'hint'); } break;
 case 'drier': {
+if (t.ignited) { msg('Сушилка горит! Не трогай её.'); return; }
 held = getActiveItem();
 if (t.meat) {
 if (t.t >= DRY_T) {
@@ -312,8 +318,8 @@ t.dead = true; G.chunkDirty = true;
 addText(t.x, t.y - 20, '🐟 + рыба');
 sfx.fish(); burst(t.x, t.y - 8, 8, '#3a8ab5', 70);
 break;
-case 'chest': if (!t.inventory) t.inventory = new Array(8).fill(null); openChest(t, '📦 СУНДУК'); break;
-case 'icebox': if (!t.inventory) t.inventory = new Array(8).fill(null); openChest(t, '❄️ ХОЛОДИЛЬНИК'); break;
+case 'chest': if (t.ignited) { msg('Сундук горит! Не трогай его.'); return; } if (!t.inventory) t.inventory = new Array(8).fill(null); openChest(t, '📦 СУНДУК'); break;
+case 'icebox': if (t.ignited) { msg('Холодильник горит! Не трогай его.'); return; } if (!t.inventory) t.inventory = new Array(8).fill(null); openChest(t, '❄️ ХОЛОДИЛЬНИК'); break;
 }
 }
 
