@@ -7,7 +7,7 @@ const LABELS = { tree: 'Дерево', rock: 'Валун', goldrock: 'Золот
 // горючие объекты (кроме деревьев)
 const FLAMMABLE = ['grass', 'sapling', 'berry', 'carrot', 'wildhive', 'beehive', 'chest', 'icebox', 'trap', 'science', 'drier'];
 // горючие dropped items
-const FLAMMABLE_ITEMS = ['grass', 'twig', 'berry', 'carrot', 'honey', 'comb', 'stinger', 'boards', 'rope', 'pinecone', 'petals', 'wood', 'silk', 'pighide', 'meat', 'mmeat', 'spider_den'];
+const FLAMMABLE_ITEMS = ['grass', 'twig', 'berry', 'carrot', 'honey', 'comb', 'stinger', 'boards', 'rope', 'pinecone', 'petals', 'wood', 'silk', 'pighide', 'meat', 'mmeat', 'spider_den', 'spidergland'];
 
 // === FIND FUNCTIONS ===
 function findNearestInteract() {

@@ -1,1 +1,1 @@
-(js/rendering.js)
+(js/items.js, js/mobs.js, js/player.js, js/world.js)
