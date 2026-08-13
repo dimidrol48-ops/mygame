@@ -1,1 +1,1 @@
-Nothing needs to be added to the .gitignore file based on the provided changes. The modified files (index.html, js/input.js, js/ui.js) are all source code files that should be tracked in version control.
+(js/items.js, js/mobs.js)
