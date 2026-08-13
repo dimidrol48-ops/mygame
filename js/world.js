@@ -28,7 +28,7 @@ for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
 const arr = chunks[cx + ',' + cy];
 if (arr) for (let i = 0; i < arr.length; i++) {
 const e = arr[i];
-if (!e.dead) fn(e);
+fn(e);
 }
 }
 }
