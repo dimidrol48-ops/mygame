@@ -23,41 +23,72 @@ spear: { name: 'Копьё', stack: 1, tool: { dmg: 34, kind: 'weapon', dur: 40 
 torch: { name: 'Факел', stack: 1, tool: { dmg: 14, kind: 'torch', dur: 80 }, eqSlot: 'hands' },
 pitchfork: { name: 'Вилы', stack: 1, tool: { dmg: 15, kind: 'pitchfork', dur: 60 }, eqSlot: 'hands' },
 ash: { name: 'Кучка пепла', stack: 20, draw: (c, x, y, s) => {
-      // Основная кучка пепла с градиентом
-      const grad = c.createRadialGradient(x - s*0.1, y - s*0.1, s*0.05, x, y, s*0.5);
-      grad.addColorStop(0, '#ddd');
-      grad.addColorStop(0.3, '#aaa');
-      grad.addColorStop(0.7, '#888');
-      grad.addColorStop(1, '#555');
+      // Тень для объема
+      c.fillStyle = 'rgba(0,0,0,0.25)';
+      c.beginPath();
+      c.ellipse(x + s*0.15, y + s*0.35, s*0.35, s*0.12, 0, 0, Math.PI * 2);
+      c.fill();
+      
+      // Основная масса пепла с градиентом
+      const grad = c.createRadialGradient(x - s*0.15, y - s*0.15, s*0.08, x, y, s*0.55);
+      grad.addColorStop(0, '#e8e8e8');
+      grad.addColorStop(0.25, '#c0c0c0');
+      grad.addColorStop(0.5, '#9a9a9a');
+      grad.addColorStop(0.75, '#757575');
+      grad.addColorStop(1, '#505050');
       
       c.fillStyle = grad;
       c.beginPath();
-      // Неровная форма кучки
-      c.moveTo(x, y - s*0.4);
-      c.bezierCurveTo(x + s*0.3, y - s*0.5, x + s*0.5, y - s*0.2, x + s*0.4, y + s*0.2);
-      c.bezierCurveTo(x + s*0.5, y + s*0.4, x + s*0.2, y + s*0.5, x, y + s*0.45);
-      c.bezierCurveTo(x - s*0.2, y + s*0.5, x - s*0.5, y + s*0.4, x - s*0.4, y + s*0.2);
-      c.bezierCurveTo(x - s*0.5, y - s*0.2, x - s*0.3, y - s*0.5, x, y - s*0.4);
+      // Неровная органическая форма кучки
+      c.moveTo(x, y - s*0.45);
+      c.bezierCurveTo(x + s*0.25, y - s*0.55, x + s*0.48, y - s*0.35, x + s*0.52, y - s*0.1);
+      c.bezierCurveTo(x + s*0.58, y + s*0.15, x + s*0.45, y + s*0.38, x + s*0.25, y + s*0.48);
+      c.bezierCurveTo(x + s*0.05, y + s*0.55, x - s*0.15, y + s*0.52, x - s*0.35, y + s*0.45);
+      c.bezierCurveTo(x - s*0.55, y + s*0.35, x - s*0.62, y + s*0.1, x - s*0.55, y - s*0.15);
+      c.bezierCurveTo(x - s*0.48, y - s*0.38, x - s*0.25, y - s*0.55, x, y - s*0.45);
       c.fill();
       
-      // Детали - мелкие частички пепла вокруг
-      c.fillStyle = '#999';
-      for(let i = 0; i < 5; i++) {
-        const angle = (i / 5) * Math.PI * 2;
-        const dist = s * (0.5 + Math.random() * 0.2);
-        const px = x + Math.cos(angle) * dist;
-        const py = y + Math.sin(angle) * dist;
-        const size = s * (0.08 + Math.random() * 0.07);
+      // Детали - рассыпанные частички пепла разного размера
+      const particles = [
+        {x: x - s*0.35, y: y - s*0.2, r: s*0.08},
+        {x: x + s*0.4, y: y - s*0.25, r: s*0.07},
+        {x: x - s*0.25, y: y + s*0.35, r: s*0.09},
+        {x: x + s*0.3, y: y + s*0.3, r: s*0.06},
+        {x: x - s*0.45, y: y + s*0.1, r: s*0.07},
+        {x: x + s*0.5, y: y + s*0.05, r: s*0.08},
+        {x: x - s*0.1, y: y - s*0.4, r: s*0.06}
+      ];
+      
+      for(let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const pGrad = c.createRadialGradient(p.x - p.r*0.3, p.y - p.r*0.3, p.r*0.2, p.x, p.y, p.r);
+        pGrad.addColorStop(0, '#d0d0d0');
+        pGrad.addColorStop(1, '#808080');
+        c.fillStyle = pGrad;
         c.beginPath();
-        c.arc(px, py, size, 0, Math.PI * 2);
+        c.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         c.fill();
       }
       
-      // Тени для объема
-      c.fillStyle = 'rgba(0,0,0,0.15)';
+      // Блики на поверхности для текстуры
+      c.fillStyle = 'rgba(255,255,255,0.35)';
       c.beginPath();
-      c.ellipse(x + s*0.1, y + s*0.3, s*0.3, s*0.1, 0, 0, Math.PI * 2);
+      c.arc(x - s*0.2, y - s*0.15, s*0.08, 0, Math.PI * 2);
+      c.arc(x + s*0.15, y - s*0.25, s*0.06, 0, Math.PI * 2);
+      c.arc(x + s*0.25, y + s*0.1, s*0.07, 0, Math.PI * 2);
       c.fill();
+      
+      // Мелкие точки-искры
+      c.fillStyle = 'rgba(200,200,200,0.6)';
+      for(let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
+        const dist = s * (0.45 + Math.random() * 0.2);
+        const px = x + Math.cos(angle) * dist;
+        const py = y + Math.sin(angle) * dist * 0.8;
+        c.beginPath();
+        c.arc(px, py, s * 0.04, 0, Math.PI * 2);
+        c.fill();
+      }
     } },
 grasssuit: { name: 'Травяная броня', stack: 1, armor: { abs: .6, dur: 60 }, eqSlot: 'chest' },
 logsuit: { name: 'Броня из брёвен', stack: 1, armor: { abs: .8, dur: 120 }, eqSlot: 'chest' },
