@@ -91,6 +91,7 @@ b.addEventListener('mousedown', e => { e.stopPropagation(); resumeAudio(); fn();
 bindBtn('tAttack', touchAttack);
 bindBtn('tTake', touchTake);
 bindBtn('tIgnite', touchIgnite);
+bindBtn('tHeal', useHealItemTouch);
 bindBtn('tCook', cookAtFire);
 bindBtn('tEat', eatSelected);
 bindBtn('tPlant', plantPinecone);
