@@ -157,7 +157,7 @@ for (let ci2 = 0; ci2 < G.ents.length; ci2++) {
 const e = G.ents[ci2];
 if (e.dead) continue;
 // Удаляем кучки пепла через 10 секунд после выпадения
-if (e.type === 'itemDrop' && e.item === 'ash' && e.spawnTime) {
+if (e.type === 'ash' && e.spawnTime) {
 if (Date.now() - e.spawnTime > 10000) {
 e.dead = true;
 continue;
