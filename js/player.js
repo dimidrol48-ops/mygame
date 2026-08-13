@@ -438,7 +438,7 @@ r = r || 155;
 let found = false;
 forEachInRadius(x, y, r, e => {
 if (e.dead) return false;
-const isF = (e.type === 'campfire' && e.lit && e.fuel > 0) || (e.type === 'tree' && e.ignited);
+const isF = (e.type === 'campfire' && e.lit && e.fuel > 0) || (e.type === 'tree' && e.ignited) || (e.ignited && FLAMMABLE.indexOf(e.type) >= 0) || (e.type === 'itemDrop' && e.ignited);
 if (isF) { found = true; return true; }
 return false;
 });

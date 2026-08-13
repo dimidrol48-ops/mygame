@@ -68,6 +68,18 @@ let held = getActiveItem();
 let weapon = G.equip.hands;
 const hasTorch = (held && held.id === 'torch') || (weapon && weapon.id === 'torch');
 if (weapon && weapon.id === 'torch') { weapon.dur -= dt; if (weapon.dur <= 0) { G.equip.hands = null; dirtyInv(); equipDirty = true; msg('Факел догорел'); } else equipDirty = true; }
+// Проверка поджога игрока от горящих объектов
+if (!p.burning && nearFire(p.x, p.y, 30)) { p.burning = true; p.burnT = 5; msg('🔥 Ты загорелся!', 'danger'); sfx.ignite(); }
+if (p.burning) {
+p.burnT -= dt;
+if (p.burnT <= 0) { p.burning = false; msg('Огонь погас', 'hint'); }
+else {
+const burnDmg = rand(8, 12) * dt;
+p.hp -= burnDmg;
+if (Math.random() < dt * 8 && G.parts.length < MAX_PARTS) G.parts.push({ x: p.x + rand(-10, 10), y: p.y - rand(20, 40), vx: rand(-15, 15), vy: rand(-60, -30), t: 0, max: rand(.3, .6), color: pick(['#ff6a1e', '#ffa832', '#ffe08a']), size: rand(2, 4), grav: -20 });
+if (p.hp <= 0) { die('огонь'); return; }
+}
+}
 p.hunger = clamp(p.hunger - dt * .2 * (p.sprint ? 1.7 : 1), 0, 100);
 if (p.hunger <= 0) { p.hp -= 2.2 * dt; if (p.hp <= 0) { die('голод'); return; } }
 else if (p.hunger > 80 && p.hp < 100) p.hp += .6 * dt;
@@ -118,7 +130,10 @@ else if (e.type === 'wildhive' || e.type === 'beehive') { if (e.ignited) updateB
 else if (e.type === 'chest' || e.type === 'icebox' || e.type === 'trap' || e.type === 'science') { if (e.ignited) updateBurningFlammable(e, localDt); }
 else if (e.type === 'nest') updateNest(e, localDt, d2);
 else if (e.type === 'pighouse') updatePighouse(e, localDt);
-else if (e.type === 'itemDrop') { if (d2 < 34 * 34 && playing && ITEMS[e.item] && canAdd(e.item, e.n)) { addInv(e.item, e.n, e.spoil); addText(e.x, e.y - 18, '+ ' + itemName(e.item).toLowerCase()); e.dead = true; G.chunkDirty = true; sfx.pick(); G.stats.gather++; } }
+else if (e.type === 'itemDrop') { 
+if (e.ignited) updateBurningFlammable(e, localDt); 
+else if (d2 < 34 * 34 && playing && ITEMS[e.item] && canAdd(e.item, e.n)) { addInv(e.item, e.n, e.spoil); addText(e.x, e.y - 18, '+ ' + itemName(e.item).toLowerCase()); e.dead = true; G.chunkDirty = true; sfx.pick(); G.stats.gather++; } 
+}
 else if (e.type === 'rabbit') updateRabbit(e, localDt, d2, playing, px, py);
 else if (e.type === 'spider') updateSpider(e, localDt, d2, playing, px, py);
 else if (e.type === 'bee') updateBee(e, localDt, d2, playing, px, py);

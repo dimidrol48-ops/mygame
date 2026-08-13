@@ -6,6 +6,8 @@ const HITR = { tree: 38, rock: 32, goldrock: 32, grass: 24, sapling: 24, berry: 
 const LABELS = { tree: 'Дерево', rock: 'Валун', goldrock: 'Золотая жила', grass: 'Трава', sapling: 'Хворост', berry: 'Ягодный куст', carrot: 'Морковь', flint: 'Кремень', stoneItem: 'Камень', itemDrop: '', rabbit: 'Длиннух', spider: 'Мрак', giant: 'ЛОСЬ-ГИГАНТ', campfire: 'Костёр', rabbitHole: 'Нора', trap: 'Силок', science: 'Научная машина', drier: 'Сушилка', nest: 'Кокон пауков', pig: 'Свин', pigking: 'СВИН-КОРОЛЬ', pighouse: 'Дом свина', pinecone: 'Сосновая шишка', wildhive: 'Дикий улей', beehive: 'Улей', bee: 'Пчела', pond: 'Пруд', fish: 'Рыба', chest: 'Сундук', icebox: 'Холодильник', marble_tree: 'Мраморное дерево', chess_horse: 'Шахматный конь' };
 // горючие объекты (кроме деревьев)
 const FLAMMABLE = ['grass', 'sapling', 'berry', 'carrot', 'wildhive', 'beehive', 'chest', 'icebox', 'trap', 'science', 'drier'];
+// горючие dropped items
+const FLAMMABLE_ITEMS = ['grass', 'twig', 'berry', 'carrot', 'honey', 'comb', 'stinger', 'boards', 'rope', 'pinecone', 'petals', 'wood', 'silk', 'pighide', 'meat', 'mmeat', 'spider_den'];
 
 // === FIND FUNCTIONS ===
 function findNearestInteract() {
@@ -222,8 +224,7 @@ held = getActiveItem();
 if (held && ITEMS[held.id] && ITEMS[held.id].tool && ITEMS[held.id].tool.kind === 'torch' && !t.ignited) {
 const dropType = t.item;
 // Проверка на горючесть предмета
-const flammableDrops = ['grass', 'twig', 'berry', 'carrot', 'honey', 'comb', 'stinger', 'boards', 'rope', 'pinecone', 'petals'];
-if (flammableDrops.indexOf(dropType) >= 0) {
+if (FLAMMABLE_ITEMS.indexOf(dropType) >= 0) {
 t.ignited = true; t.burnT = 0; t.burnMax = rand(2, 4);
 sfx.ignite(); burst(t.x, t.y - 10, 8, '#ff9a3c', 70, .6);
 msg('Предмет загорелся!', 'danger');
@@ -546,6 +547,23 @@ return false;
 }
 function updateRabbit(e, localDt, d2, playing, px, py) {
 e.hopT += localDt * 10;
+// Проверка поджога от горящих объектов
+if (!e.burning) {
+forEachInRadius(e.x, e.y, 30, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited)) {
+e.burning = true; e.burnT = 5; return true;
+}
+return false;
+});
+}
+if (e.burning) {
+e.burnT -= localDt;
+if (e.burnT <= 0) { e.burning = false; }
+else {
+e.hp -= rand(8, 12) * localDt;
+if (e.hp <= 0) { e.dead = true; G.chunkDirty = true; dropItem(e.x, e.y, 'meat', 1); }
+}
+}
 if (playing && d2 < 150 * 150) {
 const ra = Math.atan2(e.y - py, e.x - px);
 e.vx += (Math.cos(ra) * 260 - e.vx) * localDt * 6;
