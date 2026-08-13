@@ -111,12 +111,13 @@ let localDt = dt;
 if (d2 > 600 * 600 && ['spider','rabbit','pig','bee','chess_horse'].indexOf(e.type) >= 0) { if (!e.lodSkip) e.lodSkip = 0; e.lodSkip++; if (e.lodSkip < 4) continue; e.lodSkip = 0; localDt = dt * 4; }
 
 if (e.type === 'tree') { if (e.growing) { e.growTimer += localDt; if (e.growTimer >= e.growTime) { e.growing = false; e.growTimer = 0; e.hp = 66; addText(e.x, e.y - 30, '🌳 Дерево выросло!', '#8fbf54'); sfx.plant(); } } if (e.ignited) { if (updateBurningTree(e, localDt, d2, playing)) return; } }
-else if (e.type === 'grass' || e.type === 'sapling' || e.type === 'berry' || (e.type === 'carrot' && e.regrowable)) { if (!e.ready && G.season !== 'winter') { e.regrow -= localDt; if (e.regrow <= 0) e.ready = true; } }
+else if (e.type === 'grass' || e.type === 'sapling' || e.type === 'berry' || (e.type === 'carrot' && e.regrowable)) { if (!e.ready && G.season !== 'winter') { e.regrow -= localDt; if (e.regrow <= 0) e.ready = true; } if (e.ignited) updateBurningFlammable(e, localDt); }
 else if (e.type === 'campfire') updateCampfire(e, localDt);
 else if (e.type === 'drier') updateDrier(e, localDt);
+else if (e.type === 'wildhive' || e.type === 'beehive') { if (e.ignited) updateBurningFlammable(e, localDt); else updateHive(e, localDt); }
+else if (e.type === 'chest' || e.type === 'icebox' || e.type === 'trap' || e.type === 'science') { if (e.ignited) updateBurningFlammable(e, localDt); }
 else if (e.type === 'nest') updateNest(e, localDt, d2);
 else if (e.type === 'pighouse') updatePighouse(e, localDt);
-else if (e.type === 'wildhive' || e.type === 'beehive') updateHive(e, localDt);
 else if (e.type === 'itemDrop') { if (d2 < 34 * 34 && playing && ITEMS[e.item] && canAdd(e.item, e.n)) { addInv(e.item, e.n, e.spoil); addText(e.x, e.y - 18, '+ ' + itemName(e.item).toLowerCase()); e.dead = true; G.chunkDirty = true; sfx.pick(); G.stats.gather++; } }
 else if (e.type === 'rabbit') updateRabbit(e, localDt, d2, playing, px, py);
 else if (e.type === 'spider') updateSpider(e, localDt, d2, playing, px, py);

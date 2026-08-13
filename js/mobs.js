@@ -5,7 +5,7 @@ const TARGET_TYPES = ['itemDrop', 'grass', 'sapling', 'berry', 'carrot', 'flint'
 const HITR = { tree: 38, rock: 32, goldrock: 32, grass: 24, sapling: 24, berry: 28, flint: 22, stoneItem: 20, carrot: 20, itemDrop: 26, rabbit: 24, spider: 28, giant: 100, campfire: 36, rabbitHole: 26, trap: 22, science: 40, drier: 30, nest: 30, pig: 26, pigking: 60, pighouse: 34, pinecone: 18, wildhive: 30, beehive: 30, bee: 20, pond: 60, fish: 22, chest: 30, icebox: 30, marble_tree: 38, chess_horse: 34 };
 const LABELS = { tree: 'Дерево', rock: 'Валун', goldrock: 'Золотая жила', grass: 'Трава', sapling: 'Хворост', berry: 'Ягодный куст', carrot: 'Морковь', flint: 'Кремень', stoneItem: 'Камень', itemDrop: '', rabbit: 'Длиннух', spider: 'Мрак', giant: 'ЛОСЬ-ГИГАНТ', campfire: 'Костёр', rabbitHole: 'Нора', trap: 'Силок', science: 'Научная машина', drier: 'Сушилка', nest: 'Кокон пауков', pig: 'Свин', pigking: 'СВИН-КОРОЛЬ', pighouse: 'Дом свина', pinecone: 'Сосновая шишка', wildhive: 'Дикий улей', beehive: 'Улей', bee: 'Пчела', pond: 'Пруд', fish: 'Рыба', chest: 'Сундук', icebox: 'Холодильник', marble_tree: 'Мраморное дерево', chess_horse: 'Шахматный конь' };
 // горючие объекты (кроме деревьев)
-const FLAMMABLE = ['grass', 'sapling', 'berry', 'carrot', 'twig', 'stoneItem', 'flint', 'wildhive', 'beehive', 'chest', 'icebox', 'trap', 'science', 'drier', 'pinecone'];
+const FLAMMABLE = ['grass', 'sapling', 'berry', 'carrot', 'wildhive', 'beehive', 'chest', 'icebox', 'trap', 'science', 'drier'];
 
 // === FIND FUNCTIONS ===
 function findNearestInteract() {
@@ -108,7 +108,7 @@ case 'marble_tree': startJob(t); break;
 case 'grass': case 'sapling': case 'berry': case 'carrot': case 'wildhive': case 'beehive': case 'chest': case 'icebox': case 'trap': case 'science': case 'drier': {
 held = getActiveItem();
 if (held && ITEMS[held.id] && ITEMS[held.id].tool && ITEMS[held.id].tool.kind === 'torch' && !t.ignited) {
-t.ignited = true; t.burnT = 0;
+t.ignited = true; t.burnT = 0; t.burnMax = rand(2, 4);
 sfx.ignite(); burst(t.x, t.y - 20, 8, '#ff9a3c', 70, .6);
 msg('Объект загорелся!', 'danger');
 } else startJob(t);
@@ -334,7 +334,7 @@ if (e.lit && e.fuel > 0) {
 forEachInRadius(e.x, e.y, 70, o => {
 if (o.dead || o.ignited) return false;
 if (FLAMMABLE.indexOf(o.type) >= 0 && Math.random() < localDt * 0.08) {
-o.ignited = true; o.burnT = 0;
+o.ignited = true; o.burnT = 0; o.burnMax = rand(2, 4);
 sfx.ignite(); burst(o.x, o.y - 20, 6, '#ff9a3c', 50, .5);
 return true;
 }
@@ -507,7 +507,7 @@ if (dx2 * dx2 + dy2 * dy2 < 118 * 118 && Math.random() < .2) { igniteTree(o); sp
 }
 // поджигание горючих объектов рядом
 if (FLAMMABLE.indexOf(o.type) >= 0 && !o.dead && !o.ignited && Math.random() < .15) {
-o.ignited = true; o.burnT = 0; spreadOne = true; return true;
+o.ignited = true; o.burnT = 0; o.burnMax = rand(2, 4); spreadOne = true; return true;
 }
 return false;
 });
@@ -796,3 +796,16 @@ dur.firstElementChild.style.background = spoilColor(fr);
 }
 }
 function closeChest() { chestOpen = null; $('chestUI').classList.remove('open'); }
+// Горение горючих объектов (не деревья)
+function updateBurningFlammable(e, localDt) {
+e.burnT += localDt;
+const burnMax = e.burnMax || 3;
+if (Math.random() < localDt * 18 && G.parts.length < MAX_PARTS) G.parts.push({ x: e.x + rand(-8, 8), y: e.y - rand(8, 40), vx: rand(-12, 12), vy: rand(-70, -40), t: 0, max: rand(.3, .7), color: pick(['#ff6a1e', '#ffa832', '#ffe08a']), size: rand(1.5, 3), grav: -30 });
+if (e.burnT > burnMax) {
+e.dead = true; G.chunkDirty = true;
+// Выпадает кучка пепла
+dropItem(e.x, e.y, 'ash', 1);
+sfx.fall(); burst(e.x, e.y - 8, 10, '#6a6662', 70, .6);
+addText(e.x, e.y - 20, 'Пепел', '#9a9692');
+}
+}
