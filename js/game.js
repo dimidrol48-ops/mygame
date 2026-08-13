@@ -113,7 +113,7 @@ if (d2 > 600 * 600 && ['spider','rabbit','pig','bee','chess_horse'].indexOf(e.ty
 if (e.type === 'tree') { if (e.growing) { e.growTimer += localDt; if (e.growTimer >= e.growTime) { e.growing = false; e.growTimer = 0; e.hp = 66; addText(e.x, e.y - 30, '🌳 Дерево выросло!', '#8fbf54'); sfx.plant(); } } if (e.ignited) { if (updateBurningTree(e, localDt, d2, playing)) return; } }
 else if (e.type === 'grass' || e.type === 'sapling' || e.type === 'berry' || (e.type === 'carrot' && e.regrowable)) { if (!e.ready && G.season !== 'winter') { e.regrow -= localDt; if (e.regrow <= 0) e.ready = true; } if (e.ignited) updateBurningFlammable(e, localDt); }
 else if (e.type === 'campfire') updateCampfire(e, localDt);
-else if (e.type === 'drier') updateDrier(e, localDt);
+else if (e.type === 'drier') { if (e.ignited) updateBurningFlammable(e, localDt); else updateDrier(e, localDt); }
 else if (e.type === 'wildhive' || e.type === 'beehive') { if (e.ignited) updateBurningFlammable(e, localDt); else updateHive(e, localDt); }
 else if (e.type === 'chest' || e.type === 'icebox' || e.type === 'trap' || e.type === 'science') { if (e.ignited) updateBurningFlammable(e, localDt); }
 else if (e.type === 'nest') updateNest(e, localDt, d2);
