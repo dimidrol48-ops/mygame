@@ -234,7 +234,7 @@ return c;
 function newGame() {
 G = {
 t: 0, tod: 18, day: 1, season: 'autumn', phase: 'day',
-player: { x: W / 2, y: H / 2, vx: 0, vy: 0, hp: 100, hunger: 100, san: 100, face: 0, walkT: 0, moving: false, swing: null, cd: 0, cold: 0, darkT: 0, inv: 0, sprint: false, job: null },
+player: { x: W / 2, y: H / 2, vx: 0, vy: 0, hp: 100, hpMax: 100, hunger: 100, san: 100, face: 0, walkT: 0, moving: false, swing: null, cd: 0, cold: 0, darkT: 0, inv: 0, sprint: false, job: null },
 inv: new Array(10).fill(null), sel: 0,
 equip: { head: null, chest: null, hands: null, backpack: null },
 backpackInv: new Array(8).fill(null),

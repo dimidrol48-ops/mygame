@@ -7,6 +7,7 @@ gold: { name: 'Золото', stack: 20 },
 charcoal: { name: 'Уголь', stack: 20 },
 rope: { name: 'Верёвка', stack: 20 },
 silk: { name: 'Паутина', stack: 20 },
+spidergland: { name: 'Паучья железа', stack: 20, heal: 5 },
 grass: { name: 'Трава', stack: 20 },
 twig: { name: 'Хворост', stack: 20 },
 berry: { name: 'Ягоды', stack: 20, food: { h: 9, hp: 2, s: 2 } },
@@ -126,6 +127,7 @@ rot: { name: 'Гниль', stack: 20 },
 comb: { name: 'Соты', stack: 20, fuel: 15 },
 bugnet: { name: 'Сачок', stack: 1, tool: { dmg: 2, kind: 'net', dur: 50 }, eqSlot: 'hands' },
 captured_bee: { name: 'Пчела', stack: 10 },
+salve: { name: 'Лечебная мазь', stack: 10, healItem: 25 },
 };
 
 const RECIPES = [
@@ -148,6 +150,7 @@ const RECIPES = [
 { out: 'fishingrod', cost: { twig: 2, rope: 1, silk: 1 }, desc: '🎣 Удочка — лови рыбу в прудах', tier: 1 },
 { out: 'beekeeperhat', cost: { pighide: 2, silk: 1, rope: 1 }, desc: '🐝 Маска пчеловода (защита от пчёл)', tier: 1 },
 { out: 'bugnet', cost: { twig: 2, silk: 2, rope: 1 }, desc: '🕸️ Ловит пчёл для заселения улья', tier: 1 },
+{ out: 'salve', cost: { spidergland: 1, stone: 1, ash: 1 }, desc: '💚 Лечебная мазь — восстанавливает 25% HP', tier: 1 },
 { out: 'beehive', cost: { boards: 3, comb: 1 }, desc: '🍯 Пустой улей — засели 4 пчёлами', tier: 1 },
 { out: 'boards', cost: { wood: 2 }, desc: 'Доски из брёвен (2 брёвна → 1 доска)', tier: 0 },
 { out: 'chest', cost: { boards: 4 }, desc: '📦 Сундук для хранения (8 слотов)', tier: 1 },

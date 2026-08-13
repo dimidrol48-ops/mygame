@@ -172,7 +172,14 @@ function killEnt(t) {
 t.dead = true; G.chunkDirty = true; G.stats.kills++;
 burst(t.x, t.y - 8, 14, '#7a2c22', 110, .8); sfx.fall();
 if (t.type === 'rabbit') { dropItem(t.x, t.y, 'meat', 1); addText(t.x, t.y - 24, 'Длиннух пойман!'); }
-if (t.type === 'spider') { dropItem(t.x, t.y, Math.random() < .5 ? 'meat' : 'mmeat', 1); if (Math.random() < .45) dropItem(t.x, t.y, 'silk', 1); addText(t.x, t.y - 24, 'Мрак развеян'); }
+if (t.type === 'spider') { 
+const dropR = Math.random();
+if (dropR < 0.45) dropItem(t.x, t.y, 'silk', 1);
+else if (dropR < 0.75) dropItem(t.x, t.y, 'meat', 1);
+else dropItem(t.x, t.y, 'mmeat', 1);
+if (Math.random() < 0.25) dropItem(t.x, t.y, 'spidergland', 1);
+addText(t.x, t.y - 24, 'Мрак развеян'); 
+}
 if (t.type === 'pig') { dropItem(t.x, t.y, 'meat', 1); if (Math.random() < .35) dropItem(t.x, t.y, 'meat', 1); if (Math.random() < .6) dropItem(t.x + rand(-16, 16), t.y + rand(-10, 10), 'pighide', 1 + (Math.random() < .4 ? 1 : 0)); addText(t.x, t.y - 24, 'Свин пал'); }
 if (t.type === 'nest') { dropItem(t.x, t.y, 'silk', 2); G.stats.gather += 2; addText(t.x, t.y - 24, 'Кокон разорён'); }
 if (t.type === 'giant') { G.giantAlive = false; for (let i = 0; i < 6; i++) dropItem(t.x + rand(-40, 40), t.y + rand(-30, 30), 'meat', 1); msg('ГИГАНТ ПОВЕРЖЕН! Мясо ×6 — трофей охотника', 'day'); const p = G.player; p.san = clamp(p.san + 40, 0, 100); p.hp = clamp(p.hp + 20, 0, 100); sfx.boom(); G.shake = 18; }
@@ -210,6 +217,8 @@ function eatSelected() {
 if (state !== 'play' || paused || mapVisible) return;
 let idx = -1, h = getActiveItem();
 if (h && ITEMS[h.id] && ITEMS[h.id].food) { idx = G.sel; }
+else if (h && ITEMS[h.id] && ITEMS[h.id].heal) { useHealItem(h, G.sel); return; }
+else if (h && ITEMS[h.id] && ITEMS[h.id].healItem) { useHealItem(h, G.sel); return; }
 else { for (let i = 0; i < 10; i++) { const s = G.inv[i]; if (s && ITEMS[s.id] && ITEMS[s.id].food) { idx = i; break; } } }
 if (idx < 0) {
 if (G.equip.backpack) { for (let i = 0; i < G.backpackInv.length; i++) { const s2 = G.backpackInv[i]; if (s2 && ITEMS[s2.id] && ITEMS[s2.id].food) { idx = -2; break; } } }
@@ -228,6 +237,28 @@ msg('Съедено: ' + itemName(st.id).toLowerCase());
 sfx.eat();
 st.n--;
 if (st.n <= 0) { if (isBP) G.backpackInv[idx] = null; else if (G.equip.hands && G.equip.hands.id === st.id) G.equip.hands = null; else G.inv[idx] = null; }
+dirtyInv(); equipDirty = true;
+}
+
+function useHealItem(item, slotIdx) {
+if (state !== 'play' || paused || mapVisible) return;
+const p = G.player;
+const meta = ITEMS[item.id];
+let healPercent = 0;
+if (meta.heal) healPercent = meta.heal;
+else if (meta.healItem) healPercent = meta.healItem;
+if (healPercent <= 0) { msg('Этот предмет нельзя использовать'); return; }
+const healAmount = Math.floor(p.hpMax * healPercent / 100);
+if (p.hp >= 100) { msg('Здоровье полно'); return; }
+p.hp = clamp(p.hp + healAmount, 0, 100);
+addText(p.x, p.y - 50, '+' + healAmount + ' HP 💚', '#5ec9a8');
+msg('Использовано: ' + itemName(item.id).toLowerCase() + ' (+ ' + healPercent + '% HP)', 'hint');
+sfx.pick();
+item.n--;
+if (item.n <= 0) {
+if (G.equip.hands && G.equip.hands.id === item.id) G.equip.hands = null;
+else G.inv[slotIdx] = null;
+}
 dirtyInv(); equipDirty = true;
 }
 
