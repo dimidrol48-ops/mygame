@@ -4,6 +4,8 @@ const INTERACT_OK = ['itemDrop', 'grass', 'sapling', 'berry', 'carrot', 'flint',
 const TARGET_TYPES = ['itemDrop', 'grass', 'sapling', 'berry', 'carrot', 'flint', 'stoneItem', 'tree', 'rock', 'goldrock', 'rabbitHole', 'rabbit', 'spider', 'giant', 'campfire', 'trap', 'science', 'drier', 'nest', 'pig', 'pigking', 'pighouse', 'pinecone', 'wildhive', 'beehive', 'bee', 'pond', 'chest', 'icebox', 'marble_tree', 'chess_horse'];
 const HITR = { tree: 38, rock: 32, goldrock: 32, grass: 24, sapling: 24, berry: 28, flint: 22, stoneItem: 20, carrot: 20, itemDrop: 26, rabbit: 24, spider: 28, giant: 100, campfire: 36, rabbitHole: 26, trap: 22, science: 40, drier: 30, nest: 30, pig: 26, pigking: 60, pighouse: 34, pinecone: 18, wildhive: 30, beehive: 30, bee: 20, pond: 60, fish: 22, chest: 30, icebox: 30, marble_tree: 38, chess_horse: 34 };
 const LABELS = { tree: 'Дерево', rock: 'Валун', goldrock: 'Золотая жила', grass: 'Трава', sapling: 'Хворост', berry: 'Ягодный куст', carrot: 'Морковь', flint: 'Кремень', stoneItem: 'Камень', itemDrop: '', rabbit: 'Длиннух', spider: 'Мрак', giant: 'ЛОСЬ-ГИГАНТ', campfire: 'Костёр', rabbitHole: 'Нора', trap: 'Силок', science: 'Научная машина', drier: 'Сушилка', nest: 'Кокон пауков', pig: 'Свин', pigking: 'СВИН-КОРОЛЬ', pighouse: 'Дом свина', pinecone: 'Сосновая шишка', wildhive: 'Дикий улей', beehive: 'Улей', bee: 'Пчела', pond: 'Пруд', fish: 'Рыба', chest: 'Сундук', icebox: 'Холодильник', marble_tree: 'Мраморное дерево', chess_horse: 'Шахматный конь' };
+// горючие объекты (кроме деревьев)
+const FLAMMABLE = ['grass', 'sapling', 'berry', 'carrot', 'twig', 'stoneItem', 'flint', 'wildhive', 'beehive', 'chest', 'icebox', 'trap', 'science', 'drier', 'pinecone'];
 
 // === FIND FUNCTIONS ===
 function findNearestInteract() {
@@ -102,6 +104,15 @@ msg('Дерево вспыхнуло! Огонь может перекинуть
 } break;
 case 'rock': case 'goldrock': startJob(t); break;
 case 'marble_tree': startJob(t); break;
+// поджог горючих объектов факелом
+case 'grass': case 'sapling': case 'berry': case 'carrot': case 'wildhive': case 'beehive': case 'chest': case 'icebox': case 'trap': case 'science': case 'drier': {
+held = getActiveItem();
+if (held && ITEMS[held.id] && ITEMS[held.id].tool && ITEMS[held.id].tool.kind === 'torch' && !t.ignited) {
+t.ignited = true; t.burnT = 0;
+sfx.ignite(); burst(t.x, t.y - 20, 8, '#ff9a3c', 70, .6);
+msg('Объект загорелся!', 'danger');
+} else startJob(t);
+} break;
 case 'nest': cancelJob(); doSwing(t); break;
 case 'wildhive': {
 held = getActiveItem();
@@ -318,6 +329,18 @@ msg('Костёр догорел — подбрось топлива');
 G.parts.push({ x: e.x + rand(-6, 6), y: e.y - 16, vx: rand(-12, 12), vy: rand(-70, -40), t: 0, max: rand(.4, .9), color: pick(['#ffb75e', '#ff8a3c', '#ffe08a']), size: rand(1.5, 3), grav: -30 });
 }
 }
+// поджигание горючих объектов рядом с костром
+if (e.lit && e.fuel > 0) {
+forEachInRadius(e.x, e.y, 70, o => {
+if (o.dead || o.ignited) return false;
+if (FLAMMABLE.indexOf(o.type) >= 0 && Math.random() < localDt * 0.08) {
+o.ignited = true; o.burnT = 0;
+sfx.ignite(); burst(o.x, o.y - 20, 6, '#ff9a3c', 50, .5);
+return true;
+}
+return false;
+});
+}
 }
 function updateDrier(e, localDt) {
 if (e.meat && e.t < DRY_T) {
@@ -481,6 +504,10 @@ if (spreadOne) return true;
 if (o.type === 'tree' && !o.dead && !o.ignited) {
 const dx2 = o.x - e.x, dy2 = o.y - e.y;
 if (dx2 * dx2 + dy2 * dy2 < 118 * 118 && Math.random() < .2) { igniteTree(o); spreadOne = true; return true; }
+}
+// поджигание горючих объектов рядом
+if (FLAMMABLE.indexOf(o.type) >= 0 && !o.dead && !o.ignited && Math.random() < .15) {
+o.ignited = true; o.burnT = 0; spreadOne = true; return true;
 }
 return false;
 });
