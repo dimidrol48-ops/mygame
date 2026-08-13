@@ -207,7 +207,8 @@ return true;
 }
 
 function dropItem(x, y, id, n) {
-ent({ type: 'itemDrop', x: x + rand(-18, 18), y: y + rand(-14, 14), item: id, n: (n || 1), s: rand(100) });
+const e = ent({ type: 'itemDrop', x: x + rand(-18, 18), y: y + rand(-14, 14), item: id, n: (n || 1), s: rand(100) });
+if (id === 'ash') e.spawnTime = Date.now();
 }
 function dropItemNearPlayer(id, n) {
 const p = G.player;
