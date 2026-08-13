@@ -479,6 +479,25 @@ return updateBeePhysics(e, localDt, pd2, playing, angry, px, py);
 function updateBeePhysics(e, localDt, pd2, playing, angry, px, py) {
 e.x = clamp(e.x + e.vx * localDt, 40, W - 40);
 e.y = clamp(e.y + e.vy * localDt, 40, H - 40);
+// Проверка поджога от горящих объектов (только если зашёл в огонь)
+if (!e.burning) {
+let inFire = false;
+forEachInRadius(e.x, e.y, 25, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
+}
+return false;
+});
+if (inFire) { e.burning = true; e.burnT = 5; }
+}
+if (e.burning) {
+e.burnT -= localDt;
+if (e.burnT <= 0) { e.burning = false; }
+else {
+e.hp -= rand(8, 12) * localDt;
+if (e.hp <= 0) { e.dead = true; G.chunkDirty = true; dropItem(e.x, e.y, 'stinger', 1); }
+}
+}
 if (angry && pd2 < 28 && e.stingT <= 0 && playing) {
 e.stingT = 3;
 const hasHat = G.equip.head && ITEMS[G.equip.head.id] && ITEMS[G.equip.head.id].beeProtect;
@@ -547,14 +566,16 @@ return false;
 }
 function updateRabbit(e, localDt, d2, playing, px, py) {
 e.hopT += localDt * 10;
-// Проверка поджога от горящих объектов
+// Проверка поджога от горящих объектов (только если зашёл в огонь)
 if (!e.burning) {
-forEachInRadius(e.x, e.y, 30, f => {
-if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited)) {
-e.burning = true; e.burnT = 5; return true;
+let inFire = false;
+forEachInRadius(e.x, e.y, 25, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
 }
 return false;
 });
+if (inFire) { e.burning = true; e.burnT = 5; }
 }
 if (e.burning) {
 e.burnT -= localDt;
@@ -594,6 +615,25 @@ return false;
 function updateSpider(e, localDt, d2, playing, px, py) {
 const pd = playing ? Math.sqrt(d2) : 1e9;
 e.cd = Math.max(0, e.cd - localDt);
+// Проверка поджога от горящих объектов (только если зашёл в огонь)
+if (!e.burning) {
+let inFire = false;
+forEachInRadius(e.x, e.y, 25, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
+}
+return false;
+});
+if (inFire) { e.burning = true; e.burnT = 5; }
+}
+if (e.burning) {
+e.burnT -= localDt;
+if (e.burnT <= 0) { e.burning = false; }
+else {
+e.hp -= rand(8, 12) * localDt;
+if (e.hp <= 0) { e.dead = true; G.chunkDirty = true; dropItem(e.x, e.y, 'monstermeat', 1); }
+}
+}
 const nightish = G.phase !== 'day';
 if (pd < (nightish ? 260 : 170)) e.aggro = true;
 const hdx = e.x - e.hx, hdy = e.y - e.hy;
@@ -620,6 +660,25 @@ e.y = clamp(e.y + e.vy * localDt, 40, H - 40);
 }
 function updatePig(e, localDt, d2, playing, px, py) {
 e.cd = Math.max(0, e.cd - localDt);
+// Проверка поджога от горящих объектов (только если зашёл в огонь)
+if (!e.burning) {
+let inFire = false;
+forEachInRadius(e.x, e.y, 25, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
+}
+return false;
+});
+if (inFire) { e.burning = true; e.burnT = 5; }
+}
+if (e.burning) {
+e.burnT -= localDt;
+if (e.burnT <= 0) { e.burning = false; }
+else {
+e.hp -= rand(8, 12) * localDt;
+if (e.hp <= 0) { e.dead = true; G.chunkDirty = true; dropItem(e.x, e.y, 'meat', 1); }
+}
+}
 if (e.followT > 0) e.followT -= localDt;
 if (e.aggroT > 0) e.aggroT -= localDt;
 let foe = null, fd = 1e9;
@@ -681,6 +740,25 @@ if (!playing) return;
 const p = G.player;
 e.walkT += localDt * 4;
 e.cd = Math.max(0, e.cd - localDt);
+// Проверка поджога от горящих объектов (только если зашёл в огонь)
+if (!e.burning) {
+let inFire = false;
+forEachInRadius(e.x, e.y, 35, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
+}
+return false;
+});
+if (inFire) { e.burning = true; e.burnT = 5; }
+}
+if (e.burning) {
+e.burnT -= localDt;
+if (e.burnT <= 0) { e.burning = false; }
+else {
+e.hp -= rand(8, 12) * localDt;
+if (e.hp <= 0) { e.dead = true; G.chunkDirty = true; dropItem(e.x, e.y, 'monstermeat', 3); }
+}
+}
 if (e.atk) {
 e.atk += localDt;
 if (e.atk > .7) {
@@ -722,6 +800,25 @@ const dx = px - e.x, dy = py - e.y;
 const dist = Math.sqrt(dx * dx + dy * dy);
 e.cd = Math.max(0, e.cd - localDt);
 e.dmgCooldown = Math.max(0, (e.dmgCooldown || 0) - localDt);
+// Проверка поджога от горящих объектов (только если зашёл в огонь)
+if (!e.burning) {
+let inFire = false;
+forEachInRadius(e.x, e.y, 25, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
+}
+return false;
+});
+if (inFire) { e.burning = true; e.burnT = 5; }
+}
+if (e.burning) {
+e.burnT -= localDt;
+if (e.burnT <= 0) { e.burning = false; }
+else {
+e.hp -= rand(8, 12) * localDt;
+if (e.hp <= 0) { e.dead = true; G.chunkDirty = true; dropItem(e.x, e.y, 'walrus_tusk', 1); }
+}
+}
 if (dist < aggroRange) e.aggro = true;
 if (e.aggro) {
 const angle = Math.atan2(dy, dx);

@@ -68,8 +68,17 @@ let held = getActiveItem();
 let weapon = G.equip.hands;
 const hasTorch = (held && held.id === 'torch') || (weapon && weapon.id === 'torch');
 if (weapon && weapon.id === 'torch') { weapon.dur -= dt; if (weapon.dur <= 0) { G.equip.hands = null; dirtyInv(); equipDirty = true; msg('Факел догорел'); } else equipDirty = true; }
-// Проверка поджога игрока от горящих объектов
-if (!p.burning && nearFire(p.x, p.y, 30)) { p.burning = true; p.burnT = 5; msg('🔥 Ты загорелся!', 'danger'); sfx.ignite(); }
+// Проверка поджога игрока от горящих объектов (только если зашёл в огонь)
+if (!p.burning) {
+let inFire = false;
+forEachInRadius(p.x, p.y, 25, f => {
+if ((f.ignited && FLAMMABLE.indexOf(f.type) >= 0) || (f.type === 'itemDrop' && f.ignited) || (f.type === 'tree' && f.ignited) || (f.type === 'campfire' && f.lit && f.fuel > 0)) {
+inFire = true; return true;
+}
+return false;
+});
+if (inFire) { p.burning = true; p.burnT = 5; msg('🔥 Ты загорелся!', 'danger'); sfx.ignite(); }
+}
 if (p.burning) {
 p.burnT -= dt;
 if (p.burnT <= 0) { p.burning = false; msg('Огонь погас', 'hint'); }

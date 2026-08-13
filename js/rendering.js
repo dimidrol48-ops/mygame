@@ -613,6 +613,25 @@ ctx.strokeStyle = '#8a7a5a'; ctx.lineWidth = 1.4;
 
 ctx.beginPath(); ctx.moveTo(-6, headY + 1); ctx.lineTo(6, headY + 1); ctx.stroke();
 
+// Анимация горения игрока
+if (p.burning) {
+const flick = 0.7 + 0.3 * Math.sin(G.t * 15);
+const layers = [['#ff6a1e', 1], ['#ffa832', 0.7], ['#ffe08a', 0.4]];
+for (let i = 0; i < layers.length; i++) {
+const col = layers[i][0], sc = layers[i][1];
+const hh = (20 - i * 6) * sc * flick, ww = (10 - i * 3) * sc + 3;
+ctx.fillStyle = col;
+ctx.globalAlpha = 0.85 * (1 - i * 0.25);
+ctx.beginPath();
+ctx.moveTo(p.x - ww, p.y - 45 - i * 5);
+ctx.quadraticCurveTo(p.x - ww * 0.8, p.y - 45 - hh * 0.5, p.x + Math.sin(G.t * 12 + i) * 3, p.y - 45 - hh);
+ctx.quadraticCurveTo(p.x + ww * 0.8, p.y - 45 - hh * 0.5, p.x + ww, p.y - 45 - i * 5);
+ctx.closePath();
+ctx.fill();
+}
+ctx.globalAlpha = 1;
+}
+
 }
 
 }
